@@ -7,7 +7,7 @@ export default function DownloaderForm({ platform, setPreviewUrl, setPreviewForm
   const [loading, setLoading] = useState(false);
   const [normalized, setNormalized] = useState(""); // keep the normalized URL we used for preview
 
-  const BASE_URL = "https://instantsaver.onrender.com"; // <-- Render backend URL
+  const BASE_URL = "https://instantsaver.onrender.com"; // Updated backend URL
 
   const normalizeYouTube = (url) => {
     let u = url.trim().split("?")[0].replace(/\/$/, "");
@@ -32,6 +32,7 @@ export default function DownloaderForm({ platform, setPreviewUrl, setPreviewForm
       const json = await res.json();
       if (!res.ok || json.error) throw new Error(json.error || "Preview fetch failed");
 
+      // Use unified (FastDL-like) response
       setMedia(json);
 
       if (json.can_preview && json.preview_url) {
@@ -49,8 +50,12 @@ export default function DownloaderForm({ platform, setPreviewUrl, setPreviewForm
     if (!media) return;
 
     if (platform === "instagram") {
+      // Always use the original post URL we normalized earlier
       const postUrl = normalized || input.trim();
-      if (!postUrl) return alert("No Instagram post URL available.");
+      if (!postUrl) {
+        alert("No Instagram post URL available.");
+        return;
+      }
 
       const a = document.createElement("a");
       a.href = `${BASE_URL}/api/instagram/download?url=${encodeURIComponent(postUrl)}&filename=instagram`;
@@ -59,6 +64,7 @@ export default function DownloaderForm({ platform, setPreviewUrl, setPreviewForm
       a.click();
       a.remove();
     } else if (platform === "youtube") {
+      // Use the normalized URL we previewed to ensure the backend merges video+audio
       const pageUrl = normalized || normalizeYouTube(input);
 
       const a = document.createElement("a");
