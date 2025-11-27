@@ -14,6 +14,6 @@ Built using React (frontend) and Node.js + Express + yt-dlp (backend).
 - React
 - Node.js / Express
 - yt-dlp
-- Netlify (frontend hosting)
+- Vercel/Netlify (frontend hosting)
 - Render / Railway (backend hosting)
 
