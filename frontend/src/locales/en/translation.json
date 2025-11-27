@@ -1,0 +1,45 @@
+{
+  "app_title": "InstantSaver",
+  "hero_title": "Online Video Downloader",
+  "hero_desc": "Download Instagram Reels/Posts & YouTube Shorts/Live/Long — fast, free, no login.",
+  "nav_features": "Features",
+  "nav_faq": "FAQ",
+  "nav_contact": "Contact",
+
+  "features_title": "Everything in one place",
+  "features_fast_title": "Fast & Smart",
+  "features_fast_desc": "High-speed processing backed by optimized pipelines to preview & download instantly.",
+  "features_free_title": "Free to Use",
+  "features_free_desc": "No signup. No paywall. Just paste your link, preview, and download.",
+  "features_unlimited_title": "Unlimited",
+  "features_unlimited_desc": "Use it as much as you like. No hidden limits.",
+
+  "faq_title": "Frequently Asked Questions",
+  "ad_banner_text": "Advertisement",
+
+  "faq_q1_title": "What can I download?",
+  "faq_q1_text": "Instagram Reels/Posts/IGTV (public) and YouTube videos including Shorts/Live/Long.",
+  "faq_q2_title": "How does preview & download work?",
+  "faq_q2_text": "Click Preview to load the media. Then click Download (the green button below the preview) to save it to your device.",
+  "faq_q3_title": "Is it free?",
+  "faq_q3_text": "Yes. InstantSaver is free and does not require any signup.",
+  "faq_q4_title": "Why can’t I download private Instagram content?",
+  "faq_q4_text": "Private posts and stories require login and user permission. InstantSaver supports public posts only.",
+
+  "faq_q5_title": "Can I use this tool on mobile?",
+  "faq_q5_text": "Yes, InstantSaver works perfectly on Android and iOS devices. No app needed.",
+  "faq_q6_title": "Do you store my downloads?",
+  "faq_q6_text": "No. We never store or track what you download. All links are processed in real-time and deleted.",
+
+  "preview_title": "Preview",
+  "posted_by": "Posted by @{{username}}",
+  "no_video_support": "Your browser does not support the video tag.",
+
+  "footer_disclaimer": "Disclaimer: All logos and trademarks belong to their respective owners. Downloads are fetched directly from public CDNs. Please respect platform terms.",
+
+  "contact_title": "Contact & Developer Information",
+  "contact_name_label": "Name",
+  "contact_email_label": "Email",
+  "contact_role_label": "Role",
+  "contact_creator_line": "Creator of InstantSaver — the fast, secure, and reliable downloader for Instagram & YouTube."
+}
