@@ -7,6 +7,8 @@ export default function DownloaderForm({ platform, setPreviewUrl, setPreviewForm
   const [loading, setLoading] = useState(false);
   const [normalized, setNormalized] = useState(""); // keep the normalized URL we used for preview
 
+  const BASE_URL = "https://instantsaver.onrender.com"; // <-- Render backend URL
+
   const normalizeYouTube = (url) => {
     let u = url.trim().split("?")[0].replace(/\/$/, "");
     if (/\/shorts\/([^\/]+)/.test(u)) return `https://www.youtube.com/watch?v=${u.match(/\/shorts\/([^\/]+)/)[1]}`;
@@ -26,11 +28,10 @@ export default function DownloaderForm({ platform, setPreviewUrl, setPreviewForm
       if (platform === "youtube") url = normalizeYouTube(url);
       setNormalized(url); // remember the exact URL used for backend calls
 
-      const res = await fetch(`http://localhost:3001/api/${platform}?url=${encodeURIComponent(url)}`);
+      const res = await fetch(`${BASE_URL}/api/${platform}?url=${encodeURIComponent(url)}`);
       const json = await res.json();
       if (!res.ok || json.error) throw new Error(json.error || "Preview fetch failed");
 
-      // Use unified (FastDL-like) response
       setMedia(json);
 
       if (json.can_preview && json.preview_url) {
@@ -45,35 +46,29 @@ export default function DownloaderForm({ platform, setPreviewUrl, setPreviewForm
   };
 
   const onDownload = () => {
-  if (!media) return;
+    if (!media) return;
 
-  if (platform === "instagram") {
-    // Always use the original post URL we normalized earlier
-    const postUrl = normalized || input.trim();
-    if (!postUrl) {
-      alert("No Instagram post URL available.");
-      return;
+    if (platform === "instagram") {
+      const postUrl = normalized || input.trim();
+      if (!postUrl) return alert("No Instagram post URL available.");
+
+      const a = document.createElement("a");
+      a.href = `${BASE_URL}/api/instagram/download?url=${encodeURIComponent(postUrl)}&filename=instagram`;
+      a.setAttribute("download", "");
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } else if (platform === "youtube") {
+      const pageUrl = normalized || normalizeYouTube(input);
+
+      const a = document.createElement("a");
+      a.href = `${BASE_URL}/api/youtube/download?url=${encodeURIComponent(pageUrl)}&title=InstantSaver`;
+      a.setAttribute("download", "");
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     }
-
-    const a = document.createElement("a");
-    a.href = `http://localhost:3001/api/instagram/download?url=${encodeURIComponent(postUrl)}&filename=instagram`;
-    a.setAttribute("download", "");
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  } else if (platform === "youtube") {
-    // Use the normalized URL we previewed to ensure the backend merges video+audio
-    const pageUrl = normalized || normalizeYouTube(input);
-
-    const a = document.createElement("a");
-    a.href = `http://localhost:3001/api/youtube/download?url=${encodeURIComponent(pageUrl)}&title=InstantSaver`;
-    a.setAttribute("download", "");
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  }
-};
-
+  };
 
   return (
     <div className="downloader-form">
