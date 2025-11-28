@@ -1,2 +1,5 @@
 yt-dlp
 py-mini-racer
+requests
+beautifulsoup4
+instaloader
