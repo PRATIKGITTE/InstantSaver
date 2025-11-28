@@ -18,20 +18,31 @@ if not any(domain in parsed.netloc for domain in valid_domains):
 
 try:
     ydl_opts = {
-    "quiet": True,
-    "dump_single_json": True,
-    "cookiefile": "cookies.txt",
-    "extractor_args": {"youtube": {"player_client": ["default"]}}
-}
+        "quiet": True,
+        "dump_single_json": True,
+        "cookies": "cookies.txt",  # FIXED (correct key)
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["default"]
+            }
+        }
+    }
+
     with YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
         formats = info.get("formats", [])
 
-        # Pick progressive MP4
-        prog = [f for f in formats if f.get("vcodec") not in (None,"none") and f.get("acodec") not in (None,"none")]
+        prog = [
+            f for f in formats
+            if f.get("vcodec") not in (None, "none") and f.get("acodec") not in (None, "none")
+        ]
+
         mp4_prog = [f for f in prog if f.get("ext") == "mp4"]
-        best = (sorted(mp4_prog or prog, key=lambda f: f.get("tbr") or 0)[-1]
-                if (mp4_prog or prog) else None)
+
+        best = (
+            sorted(mp4_prog or prog, key=lambda f: f.get("tbr") or 0)[-1]
+            if (mp4_prog or prog) else None
+        )
 
         if best:
             print(json.dumps({
@@ -50,5 +61,6 @@ try:
                 "username": info.get("uploader"),
                 "message": "Preview unavailable for separate video/audio streams. Use download button."
             }))
+
 except Exception as e:
     print(json.dumps({"error": str(e)}))
