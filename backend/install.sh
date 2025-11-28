@@ -15,6 +15,9 @@ pip install -U yt-dlp
 # Install additional Python libraries
 pip install requests beautifulsoup4 instaloader
 
+# Install all Python packages from requirements.txt
+pip install -r /opt/render/project/src/backend/requirements.txt
+
 # Install Chromium for Puppeteer
 apt-get install -y chromium-browser
 
