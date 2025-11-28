@@ -1,18 +1,14 @@
 {
-  "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "puppeteer": "^24.16.0"
-  },
   "name": "backend",
   "version": "1.0.0",
-  "main": "puppeteer-dp-fetch.js",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "postinstall": "bash install.sh"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": ""
+  "dependencies": {
+    "express": "^5.1.0",
+    "cors": "^2.8.5",
+    "puppeteer": "^24.16.0"
+  }
 }
