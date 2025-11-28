@@ -17,17 +17,17 @@ if not any(domain in parsed.netloc for domain in valid_domains):
     sys.exit(1)
 
 try:
-    ydl_opts = {
-        "quiet": True,
-        "dump_single_json": True,
-        "cookies": "cookies.txt",  # FIXED (correct key)
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["default"]
-            }
+ ydl_opts = {
+    "quiet": True,
+    "dump_single_json": True,
+    "cookiefile": "cookies.txt",   # Correct key
+    "extractor_args": {
+        "youtube": {
+            "player_client": ["default"]
         }
-    }
-
+    },
+    "nocheckcertificate": True,      # Optional, avoids SSL issues
+}
     with YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
         formats = info.get("formats", [])
