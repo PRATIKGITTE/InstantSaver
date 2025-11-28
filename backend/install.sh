@@ -1,25 +1,25 @@
 #!/usr/bin/env bash
 
-# Update system packages
+# Update system
 apt-get update
 
-# Install Python + pip
+# Install Python3 + pip
 apt-get install -y python3 python3-pip
 
-# Install Node.js (JS runtime for yt-dlp)
-apt-get install -y nodejs npm
+# ---- IMPORTANT ----
+# Install NodeJS (required for YouTube JS runtime)
+curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+apt-get install -y nodejs
 
-# Install JS runtime for yt-dlp (optional but keep)
-pip install py-mini-racer
+# Install Chromium (optional but helps for some extractors)
+apt-get install -y chromium-browser || true
 
-# Install yt-dlp and other Python packages
-pip install -U yt-dlp requests beautifulsoup4 instaloader
+# Install yt-dlp and required libs
+pip install -U yt-dlp
+pip install py-mini-racer requests beautifulsoup4 instaloader
 
-# Install Chromium for Puppeteer
-apt-get install -y chromium-browser
-
-# Install all Python packages from requirements.txt
+# Install everything from requirements.txt
 pip install -r /opt/render/project/src/backend/requirements.txt
 
-# Give execution permission to all Python scripts
+# Give execute permissions
 chmod +x /opt/render/project/src/backend/*.py
