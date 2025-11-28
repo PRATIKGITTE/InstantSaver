@@ -6,9 +6,15 @@ const fs = require('fs');
   const number = process.argv[2];
   if (!number) return console.error('Missing number');
 
-  const browser = await puppeteer.launch({
-  headless: true,
-  args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+const browser = await puppeteer.launch({
+  headless: "new",
+  executablePath: puppeteer.executablePath(),
+  args: [
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-gpu"
+  ]
 });
 
   const page = await browser.newPage();
