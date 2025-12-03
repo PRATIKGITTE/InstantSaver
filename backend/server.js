@@ -42,70 +42,118 @@ function safeFileName(base, ext = ".mp4") {
 }
 
 // ===================== INSTAGRAM =====================
-app.get("/api/instagram", (req, res) => {
+
+function isProfileUrl(url) {
+  return /^https?:\/\/(www\.)?instagram\.com\/[^\/]+\/?$/.test(url);
+}
+
+app.get("/api/instagram", async (req, res) => {
   const { url } = req.query;
   if (!url) return res.status(400).json({ error: "Missing url" });
-  if (!isInstagramUrl(url))
-    return res.status(400).json({ error: "Invalid Instagram URL" });
+  if (!isInstagramUrl(url)) return res.status(400).json({ error: "Invalid Instagram URL" });
 
+  // ========== 📌 1. PROFILE PICTURE (DP) ==========
+  if (isProfileUrl(url)) {
+    try {
+      const username = url.split("instagram.com/")[1].replace("/", "");
+      const apiUrl = `https://www.instagram.com/${username}/?__a=1&__d=dis`;
+
+      https.get(apiUrl, (r) => {
+        let data = "";
+        r.on("data", (c) => (data += c));
+        r.on("end", () => {
+          try {
+            const json = JSON.parse(data);
+            const hd = json?.graphql?.user?.profile_pic_url_hd;
+
+            if (!hd) return res.json({ error: "DP Not found" });
+
+            return res.json({
+              type: "image",
+              username,
+              preview_url: hd,
+              download_url: hd,
+              can_preview: true,
+            });
+          } catch {
+            return res.json({ error: "Failed to fetch DP" });
+          }
+        });
+      });
+      return;
+    } catch (e) {
+      return res.json({ error: "Profile fetch failed" });
+    }
+  }
+
+  // ========== 📌 2. REELS / POSTS / CAROUSEL ==========
   const cmd = `yt-dlp -J "${url}"`;
+
   exec(cmd, (err, stdout, stderr) => {
     if (err) {
       console.error("yt-dlp Instagram error:", stderr);
       return res.status(500).json({ error: "Instagram fetch failed" });
     }
+
     try {
       const data = JSON.parse(stdout);
+
+      // image posts
+      if (data?.thumbnails?.length && !data.formats) {
+        const img = data.thumbnails[data.thumbnails.length - 1].url;
+        return res.json({
+          type: "image",
+          username: data.uploader || "unknown",
+          preview_url: img,
+          download_url: img,
+          can_preview: true
+        });
+      }
+
+      // video posts (reels / carousel video)
       const format = data.formats?.find((f) => f.url && f.vcodec !== "none");
 
-      res.json({
+      return res.json({
         type: "video",
-        username: data.uploader || data.channel || "unknown",
-        preview_url: format?.url || null, // preview may be video-only
-        download_url: `/api/instagram/download?url=${encodeURIComponent(
-          url
-        )}&title=${encodeURIComponent(data.title || "instagram")}`,
+        username: data.uploader || "unknown",
+        preview_url: format?.url || null,
+        download_url: `/api/instagram/download?url=${encodeURIComponent(url)}&title=${encodeURIComponent(
+          data.title || "instagram"
+        )}`,
         can_preview: !!format?.url,
       });
+
     } catch (e) {
       console.error("Invalid JSON from yt-dlp:", e, stdout);
-      return res
-        .status(500)
-        .json({ error: "Invalid response from Instagram parser" });
+      return res.status(500).json({ error: "Invalid Instagram response" });
     }
   });
 });
 
+
 app.get("/api/instagram/download", (req, res) => {
-  const { url, filename } = req.query; // 👈 change from src → url
+  const { url, title } = req.query;
   if (!url) return res.status(400).json({ error: "Missing url" });
 
-  const name = safeFileName(filename || "instagram_video", ".mp4");
+  const name = safeFileName(title || "instagram_video", ".mp4");
 
   res.setHeader("Content-Disposition", `attachment; filename="${name}"`);
   res.setHeader("Content-Type", "video/mp4");
 
   const { spawn } = require("child_process");
 
-  // ✅ Use the Instagram post URL, yt-dlp will merge audio+video
   const child = spawn("yt-dlp", [
     "-f", "bestvideo+bestaudio",
     "--merge-output-format", "mp4",
-    "-o", "-",  // output to stdout
+    "-o", "-",
     url,
   ]);
 
   child.stdout.pipe(res);
-
   child.stderr.on("data", (d) => console.error("yt-dlp err:", d.toString()));
-  child.on("error", (e) => {
-    console.error("yt-dlp process error:", e);
-    res.end();
-  });
-  child.on("close", (code) => {
-    if (code !== 0) console.error(`yt-dlp exited with code ${code}`);
-  });
+  child.on("close", (code) => console.log("Done, code:", code));
 });
+
 
 
 // ======================= YOUTUBE ======================
