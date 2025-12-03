@@ -132,27 +132,36 @@ app.get("/api/instagram", async (req, res) => {
 
 
 app.get("/api/instagram/download", (req, res) => {
-  const { url, title } = req.query;
-  if (!url) return res.status(400).json({ error: "Missing url" });
+    const { url, filename } = req.query;
+    if (!url) return res.status(400).json({ error: "Missing url" });
 
-  const name = safeFileName(title || "instagram_video", ".mp4");
+    const name = safeFileName(filename || "instagram_video", ".mp4");
 
-  res.setHeader("Content-Disposition", `attachment; filename="${name}"`);
-  res.setHeader("Content-Type", "video/mp4");
+    res.setHeader("Content-Disposition", `attachment; filename="${name}"`);
+    res.setHeader("Content-Type", "video/mp4");
 
-  const { spawn } = require("child_process");
+    const { spawn } = require("child_process");
 
-  const child = spawn("yt-dlp", [
-    "-f", "bestvideo+bestaudio",
-    "--merge-output-format", "mp4",
-    "-o", "-",
-    url,
-  ]);
+    // ✅ Force MP4 video+audio to fix "black screen" on mobiles
+    const child = spawn("yt-dlp", [
+        "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]",
+        "--merge-output-format", "mp4",
+        "-o", "-",
+        url
+    ]);
 
-  child.stdout.pipe(res);
-  child.stderr.on("data", (d) => console.error("yt-dlp err:", d.toString()));
-  child.on("close", (code) => console.log("Done, code:", code));
+    child.stdout.pipe(res);
+
+    child.stderr.on("data", (d) => console.error("yt-dlp err:", d.toString()));
+    child.on("error", (e) => {
+        console.error("yt-dlp process error:", e);
+        res.end();
+    });
+    child.on("close", (code) => {
+        if (code !== 0) console.error(`yt-dlp exited with code ${code}`);
+    });
 });
+
 
 
 
