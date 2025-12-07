@@ -1,52 +1,153 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/logo.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>InstantSaver — Instagram & YouTube Downloader</title>
+<!DOCTYPE html>
+<html lang="en">
+<head>
 
-    <!-- Basic SEO -->
-    <meta name="description" content="InstantSaver lets you preview and download Instagram Reels/Posts and YouTube videos (Shorts/Live/Long) fast and free." />
-    <meta name="keywords" content="Instagram downloader, Reels downloader, YouTube downloader, Shorts, IGTV, Carousel" />
+  <!-- ================= CORE ================= -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
-    <!-- Open Graph -->
-    <meta property="og:title" content="InstantSaver — Fast Instagram & YouTube Downloader" />
-    <meta property="og:description" content="Preview first, then download in one click. Free, fast, and secure." />
-    <meta property="og:image" content="%PUBLIC_URL%/og-cover.png" />
-    <meta property="og:type" content="website" />
+  <title>
+    InstantSaver™ – Instagram & YouTube Video Downloader (Reels, Posts, Shorts)
+  </title>
 
-    <!-- Twitter Cards -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="InstantSaver — Instagram & YouTube Downloader" />
-    <meta name="twitter:description" content="Preview & download Reels/Posts/Shorts in one click." />
-    <meta name="twitter:image" content="%PUBLIC_URL%/og-cover.png" />
+  <meta name="description"
+    content="InstantSaver is a free online Instagram & YouTube downloader. Download Reels, Posts, Carousels, Profile Videos, YouTube Shorts & Videos in HD. Fast & secure."
+  />
 
-    <!-- FAQ Schema -->
-    <script type="application/ld+json">
-    {
-      "@context":"https://schema.org",
-      "@type":"FAQPage",
-      "mainEntity":[
-        {
-          "@type":"Question",
-          "name":"How do I download Instagram Reels or Posts?",
-          "acceptedAnswer":{"@type":"Answer","text":"Paste the Instagram link, click Preview, then click Download below the preview."}
-        },
-        {
-          "@type":"Question",
-          "name":"How do I download YouTube videos or Shorts?",
-          "acceptedAnswer":{"@type":"Answer","text":"Paste the YouTube URL, click Preview to load the video, then click Download to save it to your device."}
-        },
-        {
-          "@type":"Question",
-          "name":"Is InstantSaver free?",
-          "acceptedAnswer":{"@type":"Answer","text":"Yes. InstantSaver is free and does not require signup."}
-        }
-      ]
+  <meta name="keywords"
+    content="InstantSaver, Instagram video downloader, download reels, Instagram post download, YouTube downloader, Shorts downloader"
+  />
+
+  <meta name="robots"
+    content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+  />
+
+  <!-- ✅ CANONICAL DOMAIN -->
+  <link rel="canonical" href="https://instantsaver.in/" />
+
+  <!-- ================= BRAND ================= -->
+  <link rel="icon" href="https://instantsaver.in/logo.svg" type="image/svg+xml" />
+  <meta name="application-name" content="InstantSaver" />
+  <meta name="theme-color" content="#0f172a" />
+
+  <!-- ================= LANGUAGE ================= -->
+  <meta http-equiv="content-language" content="en" />
+  <link rel="alternate" href="https://instantsaver.in/" hreflang="en" />
+  <link rel="alternate" href="https://instantsaver.in/" hreflang="x-default" />
+
+  <!-- ================= OPEN GRAPH ================= -->
+  <meta property="og:site_name" content="InstantSaver" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://instantsaver.in/" />
+  <meta property="og:title"
+    content="InstantSaver – Download Instagram & YouTube Videos Free"
+  />
+  <meta property="og:description"
+    content="Download Instagram Reels, Posts & YouTube Videos in HD. Preview before download. 100% Free."
+  />
+  <meta property="og:image" content="https://instantsaver.in/og-cover.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <!-- ================= TWITTER ================= -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title"
+    content="InstantSaver – Instagram & YouTube Downloader"
+  />
+  <meta name="twitter:description"
+    content="Free Instagram Reels & YouTube Shorts Downloader. Fast & secure."
+  />
+  <meta name="twitter:image" content="https://instantsaver.in/og-cover.png" />
+
+  <!-- ================= STRUCTURED DATA ================= -->
+
+  <!-- ✅ WEBSITE + SEARCH -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "InstantSaver",
+    "url": "https://instantsaver.in/",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://instantsaver.in/?q={search_term_string}",
+      "query-input": "required name=search_term_string"
     }
-    </script>
-  </head>
+  }
+  </script>
+
+  <!-- ✅ BRAND + LOGO (VERY IMPORTANT FOR GOOGLE) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "InstantSaver",
+    "url": "https://instantsaver.in/",
+    "logo": "https://instantsaver.in/logo.svg"
+  }
+  </script>
+
+  <!-- ✅ SOFTWARE / WEB APP -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "InstantSaver",
+    "operatingSystem": "Web",
+    "applicationCategory": "MultimediaApplication",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
+
+  <!-- ✅ FAQ (kept but now tied to homepage) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How to download Instagram Reels or Posts?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Copy the Instagram Reel or Post link, paste it into InstantSaver, preview the video and click Download."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I download YouTube Shorts and videos?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, InstantSaver supports YouTube Shorts, live streams and full videos."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is InstantSaver safe and free?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "InstantSaver is 100% free, safe, and requires no login."
+        }
+      }
+    ]
+  }
+  </script>
+
+</head>
+
+<body>
+  <noscript>You need to enable JavaScript to run this app.</noscript>
+  <div id="root"></div>
+</body>
+</html>
+
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
