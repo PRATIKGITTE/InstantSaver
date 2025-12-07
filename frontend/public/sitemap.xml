@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
   <url>
-    <loc>https://yourdomain.com/</loc>
-    <changefreq>daily</changefreq>
+    <loc>https://instantsaver.in/</loc>
+    <lastmod>2025-01-01</lastmod>
     <priority>1.0</priority>
   </url>
+
   <url>
-    <loc>https://yourdomain.com/contact</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
+    <loc>https://instantsaver.in/faq</loc>
+    <lastmod>2025-01-01</lastmod>
+    <priority>0.9</priority>
   </url>
+
 </urlset>
