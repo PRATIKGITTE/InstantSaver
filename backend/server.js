@@ -214,7 +214,6 @@ app.get("/api/instagram/download", (req, res) => {
   child.on("close", (code) => {
     if (code !== 0) console.error(`yt-dlp exited with code ${code}`);
   });
-});
 
 // ======================= YOUTUBE ======================
 app.get("/api/youtube", (req, res) => {
