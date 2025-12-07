@@ -1,7 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-<!DOCTYPE html>
-<html lang="en">
 <head>
 
   <!-- ================= CORE ================= -->
@@ -64,6 +62,20 @@
 
   <!-- ================= STRUCTURED DATA ================= -->
 
+<!-- ✅ Breadcrumb -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [{
+    "@type": "ListItem",
+    "position": 1,
+    "name": "Home",
+    "item": "https://instantsaver.in/"
+  }]
+}
+</script>
+  
   <!-- ✅ WEBSITE + SEARCH -->
   <script type="application/ld+json">
   {
@@ -164,10 +176,4 @@
   <noscript>You need to enable JavaScript to run this app.</noscript>
   <div id="root"></div>
 </body>
-</html>
-
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
-  </body>
 </html>
