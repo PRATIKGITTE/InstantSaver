@@ -166,7 +166,7 @@ app.get("/api/instagram", async (req, res) => {
     }
   });
 });
-
+  
 app.get("/api/instagram/download", (req, res) => {
   const { url, filename } = req.query;
   if (!url) return res.status(400).json({ error: "Missing url" });
@@ -178,17 +178,30 @@ app.get("/api/instagram/download", (req, res) => {
 
   const { spawn } = require("child_process");
 
-  // Force mp4 (H.264) + m4a (AAC) to ensure mobile compatibility.
-  // If an mp4 H.264 stream exists it will pick that; otherwise yt-dlp/ffmpeg will recode as needed.
+  // ✅ MOBILE-SAFE: Force H.264 video + AAC audio
   const child = spawn("yt-dlp", [
     "-f",
-    "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+    "bv*[vcodec^=avc]+ba[acodec^=mp4a]/b[ext=mp4]",
     "--merge-output-format",
     "mp4",
     "-o",
     "-",
     url,
   ]);
+
+  child.stdout.pipe(res);
+
+  child.stderr.on("data", (d) =>
+    console.error("yt-dlp err:", d.toString())
+  );
+
+  child.on("close", (code) => {
+    if (code !== 0) {
+      console.error("yt-dlp exited with", code);
+      res.end();
+    }
+  });
+});
 
   // stream the binary output directly to the response
   child.stdout.pipe(res);
