@@ -1,296 +1,214 @@
-// backend/server.js
 const express = require("express");
 const cors = require("cors");
-const { exec } = require("child_process");
-const fs = require("fs");
-const path = require("path");
+const { exec, spawn } = require("child_process");
 const https = require("https");
-const http = require("http");
 
 const app = express();
-const PORT = process.env.PORT || 3001;  // use Render's provided port when available
+const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
 
-// --- Helpers
-function normalizeYouTube(url) {
-  let u = url.trim();
-  if (u.includes("/shorts/")) {
-    const id = u.split("/shorts/")[1].split("?")[0];
-    return `https://www.youtube.com/watch?v=${id}`;
-  }
-  if (u.includes("youtu.be/")) {
-    const id = u.split("youtu.be/")[1].split("?")[0];
-    return `https://www.youtube.com/watch?v=${id}`;
-  }
-  return u;
-}
+/* ================= HELPERS ================= */
 
 function isInstagramUrl(url) {
   return /(?:https?:\/\/)?(www\.)?instagram\.com\//i.test(url);
 }
+
 function isYouTubeUrl(url) {
   return /(?:https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//i.test(url);
 }
 
-function safeFileName(base, ext = ".mp4") {
+function normalizeYouTube(url) {
+  if (url.includes("/shorts/")) {
+    const id = url.split("/shorts/")[1].split("?")[0];
+    return `https://www.youtube.com/watch?v=${id}`;
+  }
+  if (url.includes("youtu.be/")) {
+    const id = url.split("youtu.be/")[1].split("?")[0];
+    return `https://www.youtube.com/watch?v=${id}`;
+  }
+  return url;
+}
+
+function safeFileName(name, ext = ".mp4") {
   const ts = Date.now();
-  const safe = String(base || "video")
-    .replace(/[^a-z0-9_\-]+/gi, "_")
-    .slice(0, 40);
-  return `${safe || "video"}_${ts}${ext}`;
+  return (
+    (name || "video")
+      .replace(/[^a-z0-9]/gi, "_")
+      .slice(0, 40) +
+    "_" +
+    ts +
+    ext
+  );
 }
 
 function isProfileUrl(url) {
-  // match https://www.instagram.com/username or with trailing slash
   return /^https?:\/\/(www\.)?instagram\.com\/[^\/]+\/?$/.test(url);
 }
 
-// Choose best preview format from yt-dlp JSON for browser preview
-function choosePreviewUrlFromFormats(formats = []) {
-  // 1) Progressive mp4 (video+audio) — best
-  const progressive = formats.filter(
-    (f) => f.url && f.vcodec && f.acodec && f.vcodec !== "none" && f.acodec !== "none"
-  );
-  const progressiveMp4 = progressive.filter((f) => f.ext === "mp4");
-  if (progressiveMp4.length) {
-    // choose highest bitrate
-    const best = progressiveMp4.sort((a, b) => (a.tbr || 0) - (b.tbr || 0)).pop();
-    return { url: best.url, type: "video" };
-  }
-  // 2) Any progressive (non-mp4)
-  if (progressive.length) {
-    const best = progressive.sort((a, b) => (a.tbr || 0) - (b.tbr || 0)).pop();
-    return { url: best.url, type: "video" };
-  }
-  // 3) If only separate streams (video-only + audio-only) — pick a video-only url for preview (may not play)
-  const videoOnly = formats.find((f) => f.vcodec && f.vcodec !== "none" && (!f.acodec || f.acodec === "none"));
-  if (videoOnly) return { url: videoOnly.url, type: "video" };
+/* ================= INSTAGRAM ================= */
 
-  // 4) fallback: thumbnail
-  const thumb = formats.find((f) => f.vcodec === "none" && f.acodec === "none" && f.filesize === undefined);
-  if (thumb) return { url: thumb.url, type: "image" };
-
-  return { url: null, type: null };
-}
-
-// ===================== INSTAGRAM =====================
-
-app.get("/api/instagram", async (req, res) => {
+// Fetch Instagram metadata (NO preview video)
+app.get("/api/instagram", (req, res) => {
   const { url } = req.query;
-  if (!url) return res.status(400).json({ error: "Missing url" });
-  if (!isInstagramUrl(url)) return res.status(400).json({ error: "Invalid Instagram URL" });
 
-  // ========== 1) PROFILE PICTURE (DP) ==========
+  if (!url || !isInstagramUrl(url)) {
+    return res.status(400).json({ error: "Invalid Instagram URL" });
+  }
+
+  // ✅ Profile picture fetch
   if (isProfileUrl(url)) {
-    try {
-      const username = url.split("instagram.com/")[1].replace("/", "");
-      const apiUrl = `https://www.instagram.com/${username}/?__a=1&__d=dis`;
+    const username = url.split("instagram.com/")[1].replace("/", "");
+    const apiUrl = `https://www.instagram.com/${username}/?__a=1&__d=dis`;
 
-      https.get(apiUrl, (r) => {
+    https
+      .get(apiUrl, (r) => {
         let data = "";
         r.on("data", (c) => (data += c));
         r.on("end", () => {
           try {
             const json = JSON.parse(data);
-            const hd = json?.graphql?.user?.profile_pic_url_hd || json?.graphql?.user?.profile_pic_url;
+            const dp =
+              json?.graphql?.user?.profile_pic_url_hd ||
+              json?.graphql?.user?.profile_pic_url;
 
-            if (!hd) return res.json({ error: "DP Not found" });
+            if (!dp) return res.json({ error: "DP not found" });
 
-            // Option A: return CDN URL directly (frontend will download it)
             return res.json({
               type: "image",
               username,
-              preview_url: hd,
-              download_url: hd,
+              preview_url: dp,
+              download_url: dp,
               can_preview: true,
             });
-          } catch (err) {
-            console.error("Instagram profile JSON parse error:", err);
+          } catch {
             return res.json({ error: "Failed to fetch DP" });
           }
         });
-      }).on("error", (e) => {
-        console.error("Instagram profile fetch error:", e);
-        return res.json({ error: "Failed to fetch DP" });
-      });
+      })
+      .on("error", () => res.json({ error: "Failed to fetch DP" }));
 
-      return;
-    } catch (e) {
-      console.error("Profile fetch failed:", e);
-      return res.json({ error: "Profile fetch failed" });
-    }
+    return;
   }
 
-  // ========== 2) REELS / POSTS / CAROUSEL ==========
-  const cmd = `yt-dlp -J "${url}"`;
-
-  exec(cmd, (err, stdout, stderr) => {
+  // ✅ Reels / Posts (NO preview to avoid black screen)
+  exec(`yt-dlp -J "${url}"`, (err, stdout) => {
     if (err) {
-      console.error("yt-dlp Instagram error:", stderr || err);
       return res.status(500).json({ error: "Instagram fetch failed" });
     }
 
     try {
       const data = JSON.parse(stdout);
 
-      // If thumbnails exist and formats missing => image post
-      if (data?.thumbnails && (!data.formats || data.formats.length === 0)) {
-        const img = data.thumbnails[data.thumbnails.length - 1].url;
-        return res.json({
-          type: "image",
-          username: data.uploader || "unknown",
-          preview_url: img,
-          download_url: img,
-          can_preview: true,
-        });
-      }
-
-      // Choose a good preview URL (prefer progressive mp4)
-      const pick = choosePreviewUrlFromFormats(data.formats || []);
-      const previewUrl = pick.url || null;
-
       return res.json({
-        type: pick.type || "video",
-        username: data.uploader || "unknown",
-        preview_url: previewUrl,
-        download_url: `/api/instagram/download?url=${encodeURIComponent(url)}&title=${encodeURIComponent(
-          data.title || "instagram"
+        type: "video",
+        username: data.uploader || "instagram",
+        preview_url: null, // ❌ disabled (important)
+        download_url: `/api/instagram/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(
+          data.title || "instagram_video"
         )}`,
-        can_preview: !!previewUrl,
+        can_preview: false,
       });
-    } catch (e) {
-      console.error("Invalid JSON from yt-dlp (Instagram):", e, stdout);
-      return res.status(500).json({ error: "Invalid Instagram response" });
+    } catch {
+      return res.status(500).json({ error: "Instagram parse error" });
     }
   });
 });
-  
+
+// ✅ Instagram download (MOBILE SAFE)
 app.get("/api/instagram/download", (req, res) => {
   const { url, filename } = req.query;
-  if (!url) return res.status(400).json({ error: "Missing url" });
+  if (!url) return res.status(400).json({ error: "Missing URL" });
 
-  const name = safeFileName(filename || "instagram_video", ".mp4");
+  const name = safeFileName(filename, ".mp4");
 
   res.setHeader("Content-Disposition", `attachment; filename="${name}"`);
   res.setHeader("Content-Type", "video/mp4");
 
-  const { spawn } = require("child_process");
-
-  // ✅ MOBILE-SAFE: Force H.264 video + AAC audio
   const child = spawn("yt-dlp", [
     "-f",
     "bv*[vcodec^=avc]+ba[acodec^=mp4a]/b[ext=mp4]",
     "--merge-output-format",
     "mp4",
+    "--postprocessor-args",
+    "ffmpeg:-movflags +faststart",
     "-o",
     "-",
     url,
   ]);
 
   child.stdout.pipe(res);
-
-  child.stderr.on("data", (d) =>
-    console.error("yt-dlp err:", d.toString())
-  );
-
-  child.on("close", (code) => {
-    if (code !== 0) {
-      console.error("yt-dlp exited with", code);
-      res.end();
-    }
-  });
+  child.stderr.on("data", (d) => console.error(d.toString()));
+  child.on("error", () => res.end());
+  child.on("close", () => res.end());
 });
 
-  // stream the binary output directly to the response
-  child.stdout.pipe(res);
+/* ================= YOUTUBE ================= */
 
-  child.stderr.on("data", (d) => console.error("yt-dlp err:", d.toString()));
-  child.on("error", (e) => {
-    console.error("yt-dlp process error:", e);
-    res.end();
-  });
-  child.on("close", (code) => {
-    if (code !== 0) console.error(`yt-dlp exited with code ${code}`);
-  });
-
-// ======================= YOUTUBE ======================
 app.get("/api/youtube", (req, res) => {
   const { url } = req.query;
-  if (!url) return res.status(400).json({ error: "Missing url" });
-  if (!isYouTubeUrl(url)) return res.status(400).json({ error: "Invalid YouTube URL" });
 
-  const cmd = `yt-dlp -J "${normalizeYouTube(url)}"`;
-  exec(cmd, (err, stdout, stderr) => {
-    if (err) {
-      console.error("yt-dlp YouTube error:", stderr || err);
-      return res.status(500).json({ error: "YouTube fetch failed" });
-    }
+  if (!url || !isYouTubeUrl(url)) {
+    return res.status(400).json({ error: "Invalid YouTube URL" });
+  }
+
+  exec(`yt-dlp -J "${normalizeYouTube(url)}"`, (err, stdout) => {
+    if (err) return res.status(500).json({ error: "YouTube fetch failed" });
+
     try {
       const data = JSON.parse(stdout);
 
-      // pick a progressive mp4 preview if available
       const formats = data.formats || [];
-      let preview = null;
-      // progressive mp4
-      const progMp4 = formats.filter((f) => f.url && f.vcodec && f.acodec && f.ext === "mp4");
-      if (progMp4.length) preview = progMp4.sort((a,b)=> (a.tbr||0)-(b.tbr||0)).pop();
-      else {
-        const progAny = formats.filter((f) => f.url && f.vcodec && f.acodec);
-        if (progAny.length) preview = progAny.sort((a,b)=> (a.tbr||0)-(b.tbr||0)).pop();
-        else preview = formats.find((f) => f.url && f.vcodec && f.vcodec !== "none");
-      }
+      const preview = formats.find(
+        (f) => f.url && f.vcodec !== "none" && f.acodec !== "none" && f.ext === "mp4"
+      );
 
       res.json({
         type: "video",
-        username: data.uploader || "unknown",
+        username: data.uploader || "youtube",
         preview_url: preview?.url || null,
-        download_url: `/api/youtube/download?url=${encodeURIComponent(url)}&title=${encodeURIComponent(data.title)}`,
+        download_url: `/api/youtube/download?url=${encodeURIComponent(url)}&title=${encodeURIComponent(
+          data.title || "youtube_video"
+        )}`,
         can_preview: !!preview?.url,
       });
-    } catch (e) {
-      console.error("Invalid JSON from yt-dlp (YouTube):", e, stdout);
-      return res.status(500).json({ error: "Invalid response from YouTube parser" });
+    } catch {
+      res.status(500).json({ error: "YouTube parse error" });
     }
   });
 });
 
 app.get("/api/youtube/download", (req, res) => {
   const { url, title } = req.query;
-  if (!url) return res.status(400).json({ error: "Missing url" });
+  if (!url) return res.status(400).json({ error: "Missing URL" });
 
-  const clean = normalizeYouTube(url);
-  const name = safeFileName(title || "youtube_video", ".mp4");
+  const cleanUrl = normalizeYouTube(url);
+  const name = safeFileName(title, ".mp4");
 
   res.setHeader("Content-Disposition", `attachment; filename="${name}"`);
   res.setHeader("Content-Type", "video/mp4");
 
-  const { spawn } = require("child_process");
-
-  // prefer a single mp4 stream; fallback to best and let yt-dlp/ffmpeg handle merging/recode
   const child = spawn("yt-dlp", [
     "-f",
     "best[ext=mp4]/best",
     "--merge-output-format",
     "mp4",
+    "--postprocessor-args",
+    "ffmpeg:-movflags +faststart",
     "-o",
     "-",
-    clean,
+    cleanUrl,
   ]);
 
   child.stdout.pipe(res);
-
-  child.stderr.on("data", (d) => console.error("yt-dlp err:", d.toString()));
-  child.on("error", (e) => {
-    console.error("yt-dlp process error:", e);
-    res.end();
-  });
-  child.on("close", (code) => {
-    if (code !== 0) console.error(`yt-dlp exited with code ${code}`);
-  });
+  child.stderr.on("data", (d) => console.error(d.toString()));
+  child.on("error", () => res.end());
+  child.on("close", () => res.end());
 });
 
+/* ================= START ================= */
+
 app.listen(PORT, () => {
-  console.log(`✅ InstantSaver backend running: http://localhost:${PORT}`);
+  console.log(`✅ InstantSaver backend running on port ${PORT}`);
 });
