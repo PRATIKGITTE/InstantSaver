@@ -1,17 +1,15 @@
-{ 
-  "name": "backend", 
-  "version": "1.0.0", 
-  "main": "server.js", 
-  "scripts": 
-  { 
-    "start": "node server.js", 
-    "postinstall": "bash install.sh" 
-  }, 
-  "dependencies": 
-  { 
-    "express": "^5.1.0", 
-    "cors": "^2.8.5", 
-    "puppeteer": 
-    "^24.16.0" 
-  } 
+{
+  "name": "instantsaver-backend",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
 }
