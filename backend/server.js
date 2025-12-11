@@ -223,7 +223,8 @@ app.get("/api/youtube", (req, res) => {
     });
   }
 
-  const cmd = `"${YTDLP_PATH}" -J "${cleanUrl.replace(/"/g, '\\"')}"`;
+  //const cmd = `"${YTDLP_PATH}" -J "${cleanUrl.replace(/"/g, '\\"')}"`;
+const cmd = `"${YTDLP_PATH}" --js-runtimes deno -J "${cleanUrl.replace(/"/g, '\\"')}"`;
 
   exec(cmd, { maxBuffer: 30 * 1024 * 1024 }, (err, stdout, stderr) => {
     if (err) {
@@ -308,7 +309,7 @@ app.get("/api/youtube/download", (req, res) => {
   );
   res.setHeader("Content-Type", "video/mp4");
 
-  const args = [
+  /*const args = [
     "-f",
     "best[height<=720][ext=mp4]/best[ext=mp4]/best",
     "--merge-output-format",
@@ -321,6 +322,16 @@ app.get("/api/youtube/download", (req, res) => {
     "-",
     cleanUrl
   ];
+*/
+  const args = [
+  "--js-runtimes", "deno",
+  "-f", "best[height<=720][ext=mp4]/best[ext=mp4]/best",
+  "--merge-output-format", "mp4",
+  "--recode-video", "mp4",
+  "--postprocessor-args", "ffmpeg:-c:v libx264 -c:a aac -movflags +faststart",
+  "-o", "-",
+  cleanUrl
+];
 
   const child = spawn(YTDLP_PATH, args);
   child.stdout.pipe(res);
