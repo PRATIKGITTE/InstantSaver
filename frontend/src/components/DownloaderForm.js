@@ -11,8 +11,10 @@ export default function DownloaderForm({ platform, setPreviewUrl, setPreviewForm
 
   const normalizeYouTube = (url) => {
     let u = url.trim().split("?")[0].replace(/\/$/, "");
-    if (/\/shorts\/([^\/]+)/.test(u)) return `https://www.youtube.com/watch?v=${u.match(/\/shorts\/([^\/]+)/)[1]}`;
-    if (/youtu\.be\/([^\/]+)/.test(u)) return `https://www.youtube.com/watch?v=${u.match(/youtu\.be\/([^\/]+)/)[1]}`;
+    if (/\/shorts\/([^\/]+)/.test(u))
+      return `https://www.youtube.com/watch?v=${u.match(/\/shorts\/([^\/]+)/)[1]}`;
+    if (/youtu\.be\/([^\/]+)/.test(u))
+      return `https://www.youtube.com/watch?v=${u.match(/youtu\.be\/([^\/]+)/)[1]}`;
     return u;
   };
 
@@ -20,25 +22,23 @@ export default function DownloaderForm({ platform, setPreviewUrl, setPreviewForm
     if (!input.trim()) return alert("Please paste a valid link.");
     setLoading(true);
     setMedia(null);
-    setPreviewUrl("");
-    setPreviewFormat("");
 
     try {
       let url = input;
       if (platform === "youtube") url = normalizeYouTube(url);
       setNormalized(url); // remember the exact URL used for backend calls
 
-      const res = await fetch(`${BASE_URL}/api/${platform}?url=${encodeURIComponent(url)}`);
+      const res = await fetch(
+        `${BASE_URL}/api/${platform}?url=${encodeURIComponent(url)}`
+      );
       const json = await res.json();
       if (!res.ok || json.error) throw new Error(json.error || "Preview fetch failed");
 
       // Use unified (FastDL-like) response
       setMedia(json);
 
-      if (json.can_preview && json.preview_url) {
-        setPreviewUrl(json.preview_url);
-        setPreviewFormat(json.type === "video" ? "mp4" : "jpg");
-      }
+      // NOTE: we no longer set global previewUrl/previewFormat here
+      // so the only visible preview is the one rendered below in this component
     } catch (e) {
       alert(e.message || "Preview failed");
     } finally {
@@ -58,7 +58,9 @@ export default function DownloaderForm({ platform, setPreviewUrl, setPreviewForm
       }
 
       const a = document.createElement("a");
-      a.href = `${BASE_URL}/api/instagram/download?url=${encodeURIComponent(postUrl)}&filename=instagram`;
+      a.href = `${BASE_URL}/api/instagram/download?url=${encodeURIComponent(
+        postUrl
+      )}&filename=instagram`;
       a.setAttribute("download", "");
       document.body.appendChild(a);
       a.click();
@@ -68,7 +70,9 @@ export default function DownloaderForm({ platform, setPreviewUrl, setPreviewForm
       const pageUrl = normalized || normalizeYouTube(input);
 
       const a = document.createElement("a");
-      a.href = `${BASE_URL}/api/youtube/download?url=${encodeURIComponent(pageUrl)}&title=InstantSaver`;
+      a.href = `${BASE_URL}/api/youtube/download?url=${encodeURIComponent(
+        pageUrl
+      )}&title=InstantSaver`;
       a.setAttribute("download", "");
       document.body.appendChild(a);
       a.click();
@@ -81,7 +85,9 @@ export default function DownloaderForm({ platform, setPreviewUrl, setPreviewForm
       <div className="input-row">
         <input
           type="text"
-          placeholder={platform === "instagram" ? "Paste Instagram link" : "Paste YouTube link"}
+          placeholder={
+            platform === "instagram" ? "Paste Instagram link" : "Paste YouTube link"
+          }
           value={input}
           onChange={(e) => setInput(e.target.value)}
           className="input-box"
@@ -101,14 +107,17 @@ export default function DownloaderForm({ platform, setPreviewUrl, setPreviewForm
               </video>
             ) : (
               <div className="video-placeholder">
-                {media.message || "Preview unavailable. Use download button to get the full video."}
+                {media.message ||
+                  "Preview unavailable. Use download button to get the full video."}
               </div>
             )
           ) : media.type === "image" ? (
             <img src={media.preview_url} alt="Preview" className="media-element" />
           ) : null}
 
-          {media.username && <p className="username">Posted by @{media.username}</p>}
+          {media.username && (
+            <p className="username">Posted by @{media.username}</p>
+          )}
 
           <div className="download-container">
             <button className="btn success" onClick={onDownload}>
