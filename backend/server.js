@@ -1,4 +1,4 @@
-// server.js
+// backend/server.js
 const express = require("express");
 const cors = require("cors");
 const { exec, spawn } = require("child_process");
@@ -9,24 +9,19 @@ const PORT = process.env.PORT || 10000;
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 
-// Health check
-app.get("/health", (req, res) => {
-  res.json({ status: "ok", ts: Date.now() });
-});
-
-// Helpers
+// ---------- Helpers ----------
 function isInstagramUrl(url) {
-  return /(?:https?:\/\/)?(www\.)?instagram\.com\//i.test(url);
+  return /(?:https?:\/\/)?(www\.)?instagram\.com\//i.test(url || "");
 }
 function isYouTubeUrl(url) {
-  return /(?:https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//i.test(url);
+  return /(?:https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//i.test(url || "");
 }
 function normalizeYouTube(url) {
-  let u = url.trim().split("?")[0].replace(/\/$/, "");
-  const shorts = u.match(/\/shorts\/([^\/]+)/);
-  if (shorts) return `https://www.youtube.com/watch?v=${shorts[1]}`;
-  const shortLink = u.match(/youtu\.be\/([^\/]+)/);
-  if (shortLink) return `https://www.youtube.com/watch?v=${shortLink[1]}`;
+  let u = (url || "").trim().split("?")[0].replace(/\/$/, "");
+  const m1 = u.match(/\/shorts\/([^\/]+)/);
+  if (m1) return `https://www.youtube.com/watch?v=${m1[1]}`;
+  const m2 = u.match(/youtu\.be\/([^\/]+)/);
+  if (m2) return `https://www.youtube.com/watch?v=${m2[1]}`;
   return u;
 }
 function safeFileName(base, ext) {
@@ -36,9 +31,12 @@ function safeFileName(base, ext) {
   return `${s || "video"}_${Date.now()}${ext}`;
 }
 
-/**
- * 1) INSTAGRAM PREVIEW
- */
+// ---------- Health ----------
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", ts: Date.now() });
+});
+
+// ---------- Instagram PREVIEW ----------
 app.get("/api/instagram", (req, res) => {
   const { url } = req.query;
   if (!url || !isInstagramUrl(url)) {
@@ -46,53 +44,54 @@ app.get("/api/instagram", (req, res) => {
   }
 
   const cmd = `yt-dlp -J "${url}"`;
-  exec(cmd, { maxBuffer: 15 * 1024 * 1024 }, (err, stdout, stderr) => {
+  exec(cmd, { maxBuffer: 20 * 1024 * 1024 }, (err, stdout, stderr) => {
     if (err) {
       console.error("yt-dlp Instagram error:", stderr || err.message);
-      return res.status(500).json({ error: "Instagram fetch failed", retry: true });
+      return res
+        .status(500)
+        .json({ error: "Instagram fetch failed", retry: true });
     }
 
+    let data;
     try {
-      const data = JSON.parse(stdout);
-
-      const formats = data.formats || [];
-      // progressive formats (video+audio)
-      const prog = formats.filter(
-        f =>
-          f.url &&
-          f.vcodec &&
-          f.acodec &&
-          f.vcodec !== "none" &&
-          f.acodec !== "none"
-      );
-      const mp4Prog = prog.filter(f => f.ext === "mp4");
-      const candidates = mp4Prog.length ? mp4Prog : prog;
-      let preview = null;
-      if (candidates.length) {
-        preview = candidates.sort((a, b) => (a.tbr || 0) - (b.tbr || 0)).pop();
-      } else if (data.thumbnails && data.thumbnails.length) {
-        preview = { url: data.thumbnails[data.thumbnails.length - 1].url };
-      }
-
-      res.json({
-        type: preview && preview.vcodec ? "video" : "image",
-        can_preview: !!(preview && preview.url && preview.vcodec),
-        preview_url: preview ? preview.url : null,
-        download_url: `/api/instagram/download?url=${encodeURIComponent(url)}&title=${encodeURIComponent(
-          data.title || "instagram"
-        )}`,
-        username: data.uploader || "instagram"
-      });
+      data = JSON.parse(stdout);
     } catch (e) {
-      console.error("Invalid JSON from yt-dlp (Instagram):", e);
-      res.status(500).json({ error: "Invalid Instagram response" });
+      console.error("Instagram JSON parse error:", e);
+      return res.status(500).json({ error: "Invalid Instagram response" });
     }
+
+    const formats = Array.isArray(data.formats) ? data.formats : [];
+    const prog = formats.filter(
+      (f) =>
+        f.url &&
+        f.vcodec &&
+        f.acodec &&
+        f.vcodec !== "none" &&
+        f.acodec !== "none"
+    );
+    const mp4Prog = prog.filter((f) => f.ext === "mp4");
+    const candidates = mp4Prog.length ? mp4Prog : prog;
+
+    let preview = null;
+    if (candidates.length) {
+      preview = candidates.sort((a, b) => (a.tbr || 0) - (b.tbr || 0)).pop();
+    } else if (data.thumbnails && data.thumbnails.length) {
+      preview = { url: data.thumbnails[data.thumbnails.length - 1].url };
+    }
+
+    res.json({
+      type: preview && preview.vcodec ? "video" : "image",
+      can_preview: !!(preview && preview.url && preview.vcodec),
+      preview_url: preview ? preview.url : null,
+      download_url: `/api/instagram/download?url=${encodeURIComponent(
+        url
+      )}&title=${encodeURIComponent(data.title || "instagram")}`,
+      username: data.uploader || data.channel || "instagram"
+    });
   });
 });
 
-/**
- * 2) INSTAGRAM DOWNLOAD (mobile‑friendly MP4)
- */
+// ---------- Instagram DOWNLOAD (MP4, mobile-friendly) ----------
 app.get("/api/instagram/download", (req, res) => {
   const { url, title } = req.query;
   if (!url || !isInstagramUrl(url)) {
@@ -121,22 +120,22 @@ app.get("/api/instagram/download", (req, res) => {
 
   child.stdout.pipe(res);
 
-  child.stderr.on("data", d => console.error("yt-dlp IG err:", d.toString()));
+  child.stderr.on("data", (d) =>
+    console.error("yt-dlp IG err:", d.toString())
+  );
 
-  child.on("error", e => {
+  child.on("error", (e) => {
     console.error("yt-dlp IG process error:", e);
     if (!res.headersSent) res.status(500).end();
   });
 
-  child.on("close", code => {
+  child.on("close", (code) => {
     if (code !== 0) console.error("yt-dlp IG exited with code", code);
     if (!res.headersSent) res.end();
   });
 });
 
-/**
- * 3) YOUTUBE PREVIEW
- */
+// ---------- YouTube PREVIEW ----------
 app.get("/api/youtube", (req, res) => {
   const { url } = req.query;
   if (!url || !isYouTubeUrl(url)) {
@@ -146,50 +145,52 @@ app.get("/api/youtube", (req, res) => {
   const clean = normalizeYouTube(url);
   const cmd = `yt-dlp -J "${clean}"`;
 
-  exec(cmd, { maxBuffer: 15 * 1024 * 1024 }, (err, stdout, stderr) => {
+  exec(cmd, { maxBuffer: 20 * 1024 * 1024 }, (err, stdout, stderr) => {
     if (err) {
       console.error("yt-dlp YouTube error:", stderr || err.message);
       return res.status(500).json({ error: "YouTube fetch failed" });
     }
 
+    let data;
     try {
-      const data = JSON.parse(stdout);
-      const formats = data.formats || [];
-
-      const prog = formats.filter(
-        f =>
-          f.url &&
-          f.vcodec &&
-          f.acodec &&
-          f.vcodec !== "none" &&
-          f.acodec !== "none"
-      );
-      const mp4Prog = prog.filter(f => f.ext === "mp4");
-      const candidates = mp4Prog.length ? mp4Prog : prog;
-      let preview = null;
-      if (candidates.length) {
-        preview = candidates.sort((a, b) => (a.tbr || 0) - (b.tbr || 0)).pop();
-      }
-
-      res.json({
-        type: "video",
-        can_preview: !!(preview && preview.url),
-        preview_url: preview ? preview.url : null,
-        download_url: `/api/youtube/download?url=${encodeURIComponent(clean)}&title=${encodeURIComponent(
-          data.title || "youtube_video"
-        )}`,
-        username: data.uploader || "youtube"
-      });
+      data = JSON.parse(stdout);
     } catch (e) {
-      console.error("Invalid JSON from yt-dlp (YouTube):", e);
-      res.status(500).json({ error: "Invalid YouTube response" });
+      console.error("YouTube JSON parse error:", e);
+      return res.status(500).json({ error: "Invalid YouTube response" });
     }
+
+    const formats = Array.isArray(data.formats) ? data.formats : [];
+    const prog = formats.filter(
+      (f) =>
+        f.url &&
+        f.vcodec &&
+        f.acodec &&
+        f.vcodec !== "none" &&
+        f.acodec !== "none"
+    );
+    const mp4Prog = prog.filter((f) => f.ext === "mp4");
+    const candidates = mp4Prog.length ? mp4Prog : prog;
+
+    let preview = null;
+    if (candidates.length) {
+      preview = candidates.sort((a, b) => (a.tbr || 0) - (b.tbr || 0)).pop();
+    } else if (data.thumbnails && data.thumbnails.length) {
+      preview = { url: data.thumbnails[data.thumbnails.length - 1].url };
+    }
+
+    res.json({
+      type: "video",
+      can_preview: !!(preview && preview.url),
+      preview_url: preview ? preview.url : null,
+      download_url: `/api/youtube/download?url=${encodeURIComponent(
+        clean
+      )}&title=${encodeURIComponent(data.title || "youtube_video")}`,
+      username: data.uploader || data.channel || "youtube"
+    });
   });
 });
 
-/**
- * 4) YOUTUBE DOWNLOAD (mobile‑friendly MP4)
- */
+// ---------- YouTube DOWNLOAD ----------
 app.get("/api/youtube/download", (req, res) => {
   const { url, title } = req.query;
   if (!url || !isYouTubeUrl(url)) {
@@ -220,14 +221,16 @@ app.get("/api/youtube/download", (req, res) => {
 
   child.stdout.pipe(res);
 
-  child.stderr.on("data", d => console.error("yt-dlp YT err:", d.toString()));
+  child.stderr.on("data", (d) =>
+    console.error("yt-dlp YT err:", d.toString())
+  );
 
-  child.on("error", e => {
+  child.on("error", (e) => {
     console.error("yt-dlp YT process error:", e);
     if (!res.headersSent) res.status(500).end();
   });
 
-  child.on("close", code => {
+  child.on("close", (code) => {
     if (code !== 0) console.error("yt-dlp YT exited with code", code);
     if (!res.headersSent) res.end();
   });
