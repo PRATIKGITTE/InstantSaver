@@ -2,12 +2,20 @@
 const express = require("express");
 const cors = require("cors");
 const { exec, spawn } = require("child_process");
+const fs = require("fs");
+const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-app.use(cors());
-app.use(express.json({ limit: "50mb" }));
+// ---------- yt-dlp PATH (local binary) ----------
+const YTDLP_DIR = path.join(__dirname, "bin");
+const YTDLP_PATH = path.join(YTDLP_DIR, "yt-dlp");
+
+// Ensure bin directory exists
+if (!fs.existsSync(YTDLP_DIR)) {
+  fs.mkdirSync(YTDLP_DIR, { recursive: true });
+}
 
 // ---------- Helpers ----------
 function isInstagramUrl(url) {
@@ -31,25 +39,46 @@ function safeFileName(base, ext) {
   return `${s || "video"}_${Date.now()}${ext}`;
 }
 
-// ---------- Health ----------
+// ---------- Health + yt-dlp Status ----------
 app.get("/health", (req, res) => {
-  res.json({ status: "ok", ts: Date.now() });
+  const ytDlpExists = fs.existsSync(YTDLP_PATH);
+  res.json({ 
+    status: "ok", 
+    ts: Date.now(),
+    ytDlpAvailable: ytDlpExists,
+    ytDlpPath: YTDLP_PATH
+  });
 });
 
+// ---------- DOWNLOAD YT-DLP if missing (startup) ----------
+if (!fs.existsSync(YTDLP_PATH)) {
+  console.log("🔄 Downloading yt-dlp binary...");
+  const downloadCmd = `curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o "${YTDLP_PATH}" && chmod +x "${YTDLP_PATH}"`;
+  exec(downloadCmd, (err) => {
+    if (err) {
+      console.error("❌ Failed to download yt-dlp:", err.message);
+    } else {
+      console.log("✅ yt-dlp downloaded and ready");
+    }
+  });
+}
+
 // ---------- Instagram PREVIEW ----------
-app.get("/api/instagram", (req, res) => {
+app.get("/api/instagram", async (req, res) => {
   const { url } = req.query;
   if (!url || !isInstagramUrl(url)) {
     return res.status(400).json({ error: "Invalid Instagram URL" });
   }
 
-  const cmd = `yt-dlp -J "${url}"`;
+  if (!fs.existsSync(YTDLP_PATH)) {
+    return res.status(503).json({ error: "yt-dlp not ready, retry in 10s" });
+  }
+
+  const cmd = `"${YTDLP_PATH}" -J "${url}"`;
   exec(cmd, { maxBuffer: 20 * 1024 * 1024 }, (err, stdout, stderr) => {
     if (err) {
       console.error("yt-dlp Instagram error:", stderr || err.message);
-      return res
-        .status(500)
-        .json({ error: "Instagram fetch failed", retry: true });
+      return res.status(500).json({ error: "Instagram fetch failed", retry: true });
     }
 
     let data;
@@ -62,12 +91,7 @@ app.get("/api/instagram", (req, res) => {
 
     const formats = Array.isArray(data.formats) ? data.formats : [];
     const prog = formats.filter(
-      (f) =>
-        f.url &&
-        f.vcodec &&
-        f.acodec &&
-        f.vcodec !== "none" &&
-        f.acodec !== "none"
+      (f) => f.url && f.vcodec && f.acodec && f.vcodec !== "none" && f.acodec !== "none"
     );
     const mp4Prog = prog.filter((f) => f.ext === "mp4");
     const candidates = mp4Prog.length ? mp4Prog : prog;
@@ -83,19 +107,21 @@ app.get("/api/instagram", (req, res) => {
       type: preview && preview.vcodec ? "video" : "image",
       can_preview: !!(preview && preview.url && preview.vcodec),
       preview_url: preview ? preview.url : null,
-      download_url: `/api/instagram/download?url=${encodeURIComponent(
-        url
-      )}&title=${encodeURIComponent(data.title || "instagram")}`,
+      download_url: `/api/instagram/download?url=${encodeURIComponent(url)}&title=${encodeURIComponent(data.title || "instagram")}`,
       username: data.uploader || data.channel || "instagram"
     });
   });
 });
 
-// ---------- Instagram DOWNLOAD (MP4, mobile-friendly) ----------
+// ---------- Instagram DOWNLOAD ----------
 app.get("/api/instagram/download", (req, res) => {
   const { url, title } = req.query;
   if (!url || !isInstagramUrl(url)) {
     return res.status(400).json({ error: "Invalid Instagram URL" });
+  }
+
+  if (!fs.existsSync(YTDLP_PATH)) {
+    return res.status(503).json({ error: "yt-dlp not available" });
   }
 
   const filename = safeFileName(title || "instagram_video", ".mp4");
@@ -103,26 +129,19 @@ app.get("/api/instagram/download", (req, res) => {
   res.setHeader("Content-Type", "video/mp4");
 
   const args = [
-    "-f",
-    'best[height<=720][ext=mp4]/best[ext=mp4]/best',
-    "--merge-output-format",
-    "mp4",
-    "--recode-video",
-    "mp4",
-    "--postprocessor-args",
-    "ffmpeg:-c:v libx264 -c:a aac -movflags +faststart",
-    "-o",
-    "-",
+    "-f", 'best[height<=720][ext=mp4]/best[ext=mp4]/best',
+    "--merge-output-format", "mp4",
+    "--recode-video", "mp4",
+    "--postprocessor-args", "ffmpeg:-c:v libx264 -c:a aac -movflags +faststart",
+    "-o", "-",
     url
   ];
 
-  const child = spawn("yt-dlp", args);
+  const child = spawn(YTDLP_PATH, args);
 
   child.stdout.pipe(res);
 
-  child.stderr.on("data", (d) =>
-    console.error("yt-dlp IG err:", d.toString())
-  );
+  child.stderr.on("data", (d) => console.error("yt-dlp IG err:", d.toString()));
 
   child.on("error", (e) => {
     console.error("yt-dlp IG process error:", e);
@@ -136,14 +155,18 @@ app.get("/api/instagram/download", (req, res) => {
 });
 
 // ---------- YouTube PREVIEW ----------
-app.get("/api/youtube", (req, res) => {
+app.get("/api/youtube", async (req, res) => {
   const { url } = req.query;
   if (!url || !isYouTubeUrl(url)) {
     return res.status(400).json({ error: "Invalid YouTube URL" });
   }
 
+  if (!fs.existsSync(YTDLP_PATH)) {
+    return res.status(503).json({ error: "yt-dlp not ready, retry in 10s" });
+  }
+
   const clean = normalizeYouTube(url);
-  const cmd = `yt-dlp -J "${clean}"`;
+  const cmd = `"${YTDLP_PATH}" -J "${clean}"`;
 
   exec(cmd, { maxBuffer: 20 * 1024 * 1024 }, (err, stdout, stderr) => {
     if (err) {
@@ -161,12 +184,7 @@ app.get("/api/youtube", (req, res) => {
 
     const formats = Array.isArray(data.formats) ? data.formats : [];
     const prog = formats.filter(
-      (f) =>
-        f.url &&
-        f.vcodec &&
-        f.acodec &&
-        f.vcodec !== "none" &&
-        f.acodec !== "none"
+      (f) => f.url && f.vcodec && f.acodec && f.vcodec !== "none" && f.acodec !== "none"
     );
     const mp4Prog = prog.filter((f) => f.ext === "mp4");
     const candidates = mp4Prog.length ? mp4Prog : prog;
@@ -182,9 +200,7 @@ app.get("/api/youtube", (req, res) => {
       type: "video",
       can_preview: !!(preview && preview.url),
       preview_url: preview ? preview.url : null,
-      download_url: `/api/youtube/download?url=${encodeURIComponent(
-        clean
-      )}&title=${encodeURIComponent(data.title || "youtube_video")}`,
+      download_url: `/api/youtube/download?url=${encodeURIComponent(clean)}&title=${encodeURIComponent(data.title || "youtube_video")}`,
       username: data.uploader || data.channel || "youtube"
     });
   });
@@ -197,6 +213,10 @@ app.get("/api/youtube/download", (req, res) => {
     return res.status(400).json({ error: "Invalid YouTube URL" });
   }
 
+  if (!fs.existsSync(YTDLP_PATH)) {
+    return res.status(503).json({ error: "yt-dlp not available" });
+  }
+
   const clean = normalizeYouTube(url);
   const filename = safeFileName(title || "youtube_video", ".mp4");
 
@@ -204,26 +224,19 @@ app.get("/api/youtube/download", (req, res) => {
   res.setHeader("Content-Type", "video/mp4");
 
   const args = [
-    "-f",
-    'best[height<=720][ext=mp4]/best[ext=mp4]/best',
-    "--merge-output-format",
-    "mp4",
-    "--recode-video",
-    "mp4",
-    "--postprocessor-args",
-    "ffmpeg:-c:v libx264 -c:a aac -movflags +faststart",
-    "-o",
-    "-",
+    "-f", 'best[height<=720][ext=mp4]/best[ext=mp4]/best',
+    "--merge-output-format", "mp4",
+    "--recode-video", "mp4",
+    "--postprocessor-args", "ffmpeg:-c:v libx264 -c:a aac -movflags +faststart",
+    "-o", "-",
     clean
   ];
 
-  const child = spawn("yt-dlp", args);
+  const child = spawn(YTDLP_PATH, args);
 
   child.stdout.pipe(res);
 
-  child.stderr.on("data", (d) =>
-    console.error("yt-dlp YT err:", d.toString())
-  );
+  child.stderr.on("data", (d) => console.error("yt-dlp YT err:", d.toString()));
 
   child.on("error", (e) => {
     console.error("yt-dlp YT process error:", e);
@@ -239,4 +252,5 @@ app.get("/api/youtube/download", (req, res) => {
 app.listen(PORT, () => {
   console.log(`✅ InstantSaver backend running: http://localhost:${PORT}`);
   console.log(`🔗 Health: http://localhost:${PORT}/health`);
+  console.log(`📁 yt-dlp path: ${YTDLP_PATH}`);
 });
