@@ -184,6 +184,8 @@ export default function App() {
             </div>
           }
         />
+// In your App.js or main router file
+         <Route path="/faq" element={<FAQ />} />
 
         <Route path="/contact" element={<Contact />} />
       </Routes>
