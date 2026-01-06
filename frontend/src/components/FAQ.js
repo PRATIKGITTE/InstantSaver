@@ -9,36 +9,36 @@ export default function FAQ() {
   // ✅ FIXED: Real domain URLs
   const hreflangs = [
     { lang: "en", url: "https://instantsaver.in/" },
-    { lang: "hi", url: "https://instantsaver.in/hi" }, // if you have Hindi page
+    { lang: "hi", url: "https://instantsaver.in/hi" },
   ];
 
   return (
     <section id="faq" className="faq" aria-labelledby="faq-heading">
       <Helmet>
-        {/* ✅ PAGE SEO */}
-        <title>FAQ — InstantSaver | Instagram Reels & YouTube Downloader</title>
+        {/* ✅ FIXED: NO "FAQ" - Perfect SEO title */}
+        <title>InstantSaver™ – Instagram & YouTube Video Downloader (Reels, Posts, Shorts)</title>
         <meta
           name="description"
-          content="InstantSaver FAQ: How to download Instagram Reels, Posts & YouTube videos. Preview with audio, HD quality, no login required."
+          content="Download Instagram Reels, Posts, Carousels & YouTube Shorts in HD. Fast, secure & no login required."
         />
         <meta
           name="keywords"
-          content="instantsaver faq, instagram reels faq, youtube downloader faq, download instagram, reel downloader"
+          content="instantsaver, instagram downloader, reels downloader, youtube downloader, shorts downloader"
         />
 
-        {/* ✅ OPEN GRAPH */}
+        {/* ✅ FIXED OG: NO FAQ mention */}
         <meta
           property="og:title"
-          content="InstantSaver FAQ — Instagram & YouTube Downloader Guide"
+          content="InstantSaver™ – Instagram Reels & YouTube Downloader"
         />
         <meta
           property="og:description"
-          content="Learn how InstantSaver downloads Instagram Reels & YouTube videos with preview. FAQ answers all your questions."
+          content="Download Instagram Reels, Posts & YouTube videos in HD quality instantly. Preview before download."
         />
-        <meta property="og:image" content="https://instantsaver.in/og-faq.png" />
+        <meta property="og:image" content="https://instantsaver.in/og-cover.png" />
         <meta property="og:url" content="https://instantsaver.in/faq" />
 
-        {/* ✅ CRITICAL: ORGANIZATION LOGO SCHEMA (Fixes Globe Icon) */}
+        {/* ✅ LOGO FOR GOOGLE (Fixes Globe Icon) */}
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
@@ -50,7 +50,7 @@ export default function FAQ() {
           })}
         </script>
 
-        {/* ✅ FAQ PAGE SCHEMA (Rich FAQ Snippets) */}
+        {/* ✅ FAQ SCHEMA - Clean question names */}
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
@@ -58,7 +58,7 @@ export default function FAQ() {
             "mainEntity": [
               {
                 "@type": "Question",
-                "name": "How to download Instagram Reels with InstantSaver?",
+                "name": "Download Instagram Reels",
                 "acceptedAnswer": {
                   "@type": "Answer",
                   "text": "1. Copy Instagram Reel/Post URL\n2. Paste in InstantSaver\n3. Preview (with audio)\n4. Click Download (HD quality)\nNo login or watermark required."
@@ -66,15 +66,15 @@ export default function FAQ() {
               },
               {
                 "@type": "Question",
-                "name": "Does InstantSaver work on mobile?",
+                "name": "Mobile compatibility",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Yes! InstantSaver works perfectly on Android, iPhone, tablets, and desktop browsers."
+                  "text": "Works perfectly on Android, iPhone, tablets, and desktop browsers."
                 }
               },
               {
                 "@type": "Question",
-                "name": "Is InstantSaver safe and free?",
+                "name": "Safe and free",
                 "acceptedAnswer": {
                   "@type": "Answer",
                   "text": "100% free and safe. No login, no data collection, no watermarks, no limits."
@@ -82,15 +82,15 @@ export default function FAQ() {
               },
               {
                 "@type": "Question",
-                "name": "Can I download YouTube Shorts?",
+                "name": "YouTube Shorts support",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Yes, InstantSaver supports YouTube Shorts and regular videos."
+                  "text": "Supports YouTube Shorts and regular videos."
                 }
               },
               {
                 "@type": "Question",
-                "name": "What video quality does InstantSaver download?",
+                "name": "Video quality",
                 "acceptedAnswer": {
                   "@type": "Answer",
                   "text": "HD quality (up to 720p) optimized for fast download and compatibility."
@@ -98,7 +98,7 @@ export default function FAQ() {
               },
               {
                 "@type": "Question",
-                "name": "Why is my download failing?",
+                "name": "Download troubleshooting",
                 "acceptedAnswer": {
                   "@type": "Answer",
                   "text": "Private posts require login. Try public Reels/Posts or wait 5 minutes and retry."
@@ -108,7 +108,7 @@ export default function FAQ() {
           })}
         </script>
 
-        {/* ✅ HREFLANG (Fixed URLs) */}
+        {/* ✅ HREFLANG */}
         {hreflangs.map((h) => (
           <link
             key={h.lang}
@@ -120,9 +120,10 @@ export default function FAQ() {
         <link rel="alternate" hrefLang="x-default" href="https://instantsaver.in/" />
       </Helmet>
 
-      <h1>InstantSaver FAQ</h1>
+      {/* ✅ FIXED H1: NO "FAQ" */}
+      <h1>InstantSaver™ – Download Videos Instantly</h1>
       <p className="faq-intro">
-        Answers to common questions about downloading Instagram Reels, Posts & YouTube videos.
+        Everything you need to know about downloading Instagram Reels, Posts & YouTube videos.
       </p>
 
       {/* Top ad/banner placeholder */}
