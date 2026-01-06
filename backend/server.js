@@ -9,6 +9,15 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 
 app.use(cors());
+
+// Force HTTPS redirect - ADD THIS AT THE TOP after app.use(cors())
+app.use((req, res, next) => {
+  if (req.get('X-Forwarded-Proto') !== 'https' && req.get('X-Forwarded-Proto')) {
+    return res.redirect(301, `https://${req.get('host')}${req.url}`);
+  }
+  next();
+});
+
 app.use(express.json({ limit: "50mb" }));
 
 // ---------- yt-dlp PATH ----------
