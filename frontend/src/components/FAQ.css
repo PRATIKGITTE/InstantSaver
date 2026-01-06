@@ -27,3 +27,17 @@
   margin: 0;
   color: #374151;
 }
+/* ✅ CENTER FAQ H1 + Intro */
+.faq h1 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.faq-intro {
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto 2rem auto;
+  font-size: 1.1rem;
+  color: #64748b;
+  line-height: 1.6;
+}
