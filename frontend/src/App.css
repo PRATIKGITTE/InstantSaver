@@ -264,43 +264,63 @@ body {
   .subtab { min-width: 200px; }
   .preview-improved { margin: 16px; padding: 20px; }
 }
-/* ✅ MOBILE PERFECT - Add to end of your App.css */
+
+/* ✅ MOBILE PERFECT HORIZONTAL SUBTABS */
 @media (max-width: 768px) {
-  .instagram-subtabs, .youtube-subtabs {
+  .subtabs {
     display: flex !important;
     flex-wrap: nowrap !important;
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
-    padding: 10px 0;
+    padding: 12px 0;
     gap: 8px;
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* IE/Edge */
+    margin-bottom: 20px;
   }
 
-  .instagram-subtabs::-webkit-scrollbar, .youtube-subtabs::-webkit-scrollbar {
+  .subtabs::-webkit-scrollbar {
     display: none; /* Chrome/Safari */
   }
 
   .subtab {
-    flex: 0 0 auto !important; /* Don't shrink */
-    white-space: nowrap; /* Prevent text wrap */
-    min-width: 120px; /* Perfect mobile size */
-    padding: 10px 16px !important;
-    font-size: 14px;
+    flex: 0 0 auto !important;
+    white-space: nowrap;
+    min-width: 110px;
+    max-width: 140px;
+    padding: 12px 16px !important;
+    font-size: 13px !important;
+    font-weight: 500;
   }
 
-  .hero { padding: 12px !important; }
-  .hero h1 { font-size: 28px !important; }
-  .tabs { flex-wrap: nowrap !important; }
+  /* Active tab bigger on mobile */
+  .subtab.active {
+    min-width: 120px !important;
+    font-size: 14px !important;
+  }
+
+  .hero { padding: 16px 12px !important; }
+  .hero h1 { font-size: 28px !important; line-height: 1.2 !important; }
+  .tabs { gap: 12px !important; }
+  .tab { padding: 12px 20px !important; font-size: 16px !important; }
 }
 
-/* iPhone specific fixes */
 @supports (-webkit-touch-callout: none) {
   .subtabs {
     scroll-snap-type: x mandatory;
+    scroll-padding-left: 12px;
   }
   .subtab {
     scroll-snap-align: start;
+  }
+}
+
+/* Extra small phones */
+@media (max-width: 480px) {
+  .subtab {
+    min-width: 100px !important;
+    padding: 10px 12px !important;
+    font-size: 12px !important;
   }
 }
