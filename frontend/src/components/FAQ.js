@@ -1,10 +1,15 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import "./FAQ.css";
 
 export default function FAQ() {
   const { t, i18n } = useTranslation();
+  const location = useLocation();
+
+  // ✅ Show Home button ONLY on /faq route (not homepage #faq)
+  const showHomeButton = location.pathname === "/faq";
 
   // ✅ FIXED: Real domain URLs
   const hreflangs = [
@@ -13,20 +18,23 @@ export default function FAQ() {
   ];
 
   return (
-    <div className="app"> {/* ✅ Added app wrapper for consistent styling */}
-      {/* ✅ HOME BUTTON HEADER - Same as Features */}
-      <header className="nav">
-        <div className="brand">
-          <img src="/logo.png" className="logo" alt="InstantSaver" />
-          <span>InstantSaver</span>
+    <>
+      {/* ✅ HOME BUTTON - ONLY on /faq route */}
+      {showHomeButton && (
+        <div className="app-header">
+          <header className="nav">
+            <div className="brand">
+              <img src="/logo.png" className="logo" alt="InstantSaver" />
+              <span>InstantSaver</span>
+            </div>
+            <nav className="links">
+              <a href="/">← Home</a>
+            </nav>
+          </header>
         </div>
-        <nav className="links">
-          <a href="/">← Home</a>
-        </nav>
-      </header>
+      )}
 
       <Helmet>
-        {/* ✅ FIXED: NO "FAQ" - Perfect SEO title */}
         <title>InstantSaver™ – Instagram & YouTube Video Downloader (Reels, Posts, Shorts)</title>
         <meta
           name="description"
@@ -36,32 +44,22 @@ export default function FAQ() {
           name="keywords"
           content="instantsaver, instagram downloader, reels downloader, youtube downloader, shorts downloader"
         />
-
-        {/* ✅ FIXED OG: NO FAQ mention */}
-        <meta
-          property="og:title"
-          content="InstantSaver™ – Instagram Reels & YouTube Downloader"
-        />
-        <meta
-          property="og:description"
-          content="Download Instagram Reels, Posts & YouTube videos in HD quality instantly. Preview before download."
-        />
+        <meta property="og:title" content="InstantSaver™ – Instagram Reels & YouTube Downloader" />
+        <meta property="og:description" content="Download Instagram Reels, Posts & YouTube videos in HD quality instantly. Preview before download." />
         <meta property="og:image" content="https://instantsaver.in/og-cover.png" />
         <meta property="og:url" content="https://instantsaver.in/faq" />
 
-        {/* ✅ LOGO FOR GOOGLE (Fixes Globe Icon) */}
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
             "@type": "Organization",
             "name": "InstantSaver",
             "url": "https://instantsaver.in/",
-            "logo": "https://instantsaver.in/logo.png",  // ✅ PNG fixed
+            "logo": "https://instantsaver.in/logo.png",
             "description": "Free Instagram Reels & YouTube video downloader"
           })}
         </script>
 
-        {/* ✅ FAQ SCHEMA - Clean question names */}
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
@@ -119,31 +117,19 @@ export default function FAQ() {
           })}
         </script>
 
-        {/* ✅ HREFLANG */}
         {hreflangs.map((h) => (
-          <link
-            key={h.lang}
-            rel="alternate"
-            hrefLang={h.lang}
-            href={h.url}
-          />
+          <link key={h.lang} rel="alternate" hrefLang={h.lang} href={h.url} />
         ))}
         <link rel="alternate" hrefLang="x-default" href="https://instantsaver.in/" />
       </Helmet>
 
       <section className="faq" aria-labelledby="faq-heading">
-        {/* ✅ FIXED H1: NO "FAQ" */}
         <h1>InstantSaver™ – Download Videos Instantly</h1>
         <p className="faq-intro">
           Everything you need to know about downloading Instagram Reels, Posts & YouTube videos.
         </p>
 
-        {/* Top ad/banner placeholder */}
-        <div
-          className="ad-banner"
-          role="complementary"
-          aria-label={t("ad_banner_text")}
-        >
+        <div className="ad-banner" role="complementary" aria-label={t("ad_banner_text")}>
           <div className="ad-inner">
             <strong>{t("ad_banner_text")}</strong>
             <div className="ad-placeholder">Your Ad Here</div>
@@ -177,6 +163,6 @@ export default function FAQ() {
           </div>
         </div>
       </section>
-    </div>
+    </>
   );
 }
