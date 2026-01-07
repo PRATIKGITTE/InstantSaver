@@ -31,19 +31,22 @@ const YT_TYPES = [
   { id: "long", label: "Long Video" }
 ];
 
-// ✅ FIXED Refresh Guard - Works on ALL routes including #features, #faq
+// ✅ REPLACE your RedirectOnRefresh function ONLY
 function RedirectOnRefresh() {
   useEffect(() => {
-    // Check if it's a real refresh AND not on homepage
-    const isRealRefresh = performance.navigation.type === 1;
-    const currentPath = window.location.pathname + window.location.hash;
+    // Scroll to top on ALL refreshes (including #features, #faq)
+    if (performance.navigation.type === 1) {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
     
-    if (isRealRefresh && currentPath !== "/" && currentPath !== "/#features" && currentPath !== "/#faq") {
+    // Redirect non-home routes to home
+    if (performance.navigation.type === 1 && window.location.pathname !== "/") {
       window.location.href = "/";
     }
   }, []);
   return null;
 }
+
 
 export default function App() {
   const { t, i18n } = useTranslation();
