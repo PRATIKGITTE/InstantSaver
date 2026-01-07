@@ -193,9 +193,18 @@ export default function App() {
         } 
         />
 
-        {/* ✅ FAQ + CONTACT - Auto-redirect on refresh */}
-        <Route path="/faq" element={<><RedirectOnRefresh /><FAQ /></>} />
-        <Route path="/contact" element={<><RedirectOnRefresh /><Contact /></>} />
+     
+
+          // ✅ REPLACE your RedirectOnRefresh with THIS (3 lines only)
+function RedirectOnRefresh() {
+  useEffect(() => {
+    if (performance.navigation.type === 1 && window.location.pathname !== "/") {
+      window.location.href = "/";
+    }
+  }, []);
+  return null;
+}
+
         
         {/* ✅ CATCH-ALL → Home */}
         <Route path="*" element={<RedirectOnRefresh />} />
