@@ -31,22 +31,32 @@ const YT_TYPES = [
   { id: "long", label: "Long Video" }
 ];
 
-// ✅ REPLACE your RedirectOnRefresh function ONLY
+// ✅ PERFECT Scroll + Refresh Fix
 function RedirectOnRefresh() {
   useEffect(() => {
-    // Scroll to top on ALL refreshes (including #features, #faq)
-    if (performance.navigation.type === 1) {
-      window.scrollTo({ top: 0, behavior: 'instant' });
+    // ✅ DISABLE browser scroll restoration
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
     }
-    
-    // Redirect non-home routes to home
+
+    // ✅ FORCE scroll to top - Multiple times to beat browser
+    const scrollToTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    };
+
+    scrollToTop();
+    setTimeout(scrollToTop, 10);
+    setTimeout(scrollToTop, 100);
+    setTimeout(scrollToTop, 500);
+
+    // ✅ Redirect ONLY non-home routes (not #features/#faq)
     if (performance.navigation.type === 1 && window.location.pathname !== "/") {
       window.location.href = "/";
     }
   }, []);
+
   return null;
 }
-
 
 export default function App() {
   const { t, i18n } = useTranslation();
@@ -69,10 +79,9 @@ export default function App() {
       </Helmet>
 
       <Routes>
-        {/* ✅ HOME PAGE - #features & #faq scroll + refresh to top */}
+        {/* ✅ HOME PAGE - NEW LAYOUT: Preview ABOVE Subtabs */}
         <Route path="/" element={
           <div className="app">
-            {/* ✅ Scroll to top on homepage refresh */}
             <RedirectOnRefresh />
             
             <header className="nav">
@@ -100,6 +109,7 @@ export default function App() {
               <h1>{t("hero_title", "Online Video Downloader")}</h1>
               <p>{t("hero_desc", "Download Instagram Reels/Posts & YouTube Shorts/Live/Long — fast, free, no login.")}</p>
 
+              {/* ✅ TABS */}
               <div className="tabs">
                 {TABS.map((tTab) => (
                   <button
@@ -112,6 +122,31 @@ export default function App() {
                 ))}
               </div>
 
+              {/* ✅ NEW ORDER: LINK PASTE PREVIEW FIRST */}
+              <DownloaderForm
+                platform={platform}
+                igType={igType}
+                ytType={ytType}
+                setPreviewUrl={setPreviewUrl}
+                setPreviewFormat={setPreviewFormat}
+                setPreviewUsername={setPreviewUsername}
+              />
+
+              {/* ✅ PREVIEW - Shows immediately after paste */}
+              {previewUrl && (
+                <div className="preview">
+                  <h3>{t("preview_title", "Preview")}</h3>
+                  {platform === "instagram" && previewUsername && (
+                    <p className="username">{t("posted_by", "Posted by @{{username}}").replace("{{username}}", previewUsername)}</p>
+                  )}
+                  <video controls width="100%" style={{ borderRadius: "12px", marginTop: "15px" }}>
+                    <source src={previewUrl} type={`video/${previewFormat || "mp4"}`} />
+                    {t("no_video_support", "Your browser does not support the video tag.")}
+                  </video>
+                </div>
+              )}
+
+              {/* ✅ SUBTABS - BELOW Preview */}
               {platform === "instagram" && (
                 <div className="subtabs">
                   {IG_TYPES.map((tObj) => (
@@ -139,28 +174,6 @@ export default function App() {
                     </button>
                   ))}
                   <YouTubeInfo />
-                </div>
-              )}
-
-              <DownloaderForm
-                platform={platform}
-                igType={igType}
-                ytType={ytType}
-                setPreviewUrl={setPreviewUrl}
-                setPreviewFormat={setPreviewFormat}
-                setPreviewUsername={setPreviewUsername}
-              />
-
-              {previewUrl && (
-                <div className="preview">
-                  <h3>{t("preview_title", "Preview")}</h3>
-                  {platform === "instagram" && previewUsername && (
-                    <p className="username">{t("posted_by", "Posted by @{{username}}").replace("{{username}}", previewUsername)}</p>
-                  )}
-                  <video controls width="100%" style={{ borderRadius: "12px", marginTop: "15px" }}>
-                    <source src={previewUrl} type={`video/${previewFormat || "mp4"}`} />
-                    {t("no_video_support", "Your browser does not support the video tag.")}
-                  </video>
                 </div>
               )}
             </section>
@@ -200,16 +213,10 @@ export default function App() {
           </div>
         } />
 
-        {/* ✅ FEATURES PAGE */}
+        {/* ✅ ROUTE PAGES */}
         <Route path="/features" element={<><RedirectOnRefresh /><Features /></>} />
-
-        {/* ✅ FAQ PAGE */}
         <Route path="/faq" element={<><RedirectOnRefresh /><FAQ /></>} />
-
-        {/* ✅ CONTACT PAGE */}
         <Route path="/contact" element={<><RedirectOnRefresh /><Contact /></>} />
-        
-        {/* ✅ CATCH-ALL */}
         <Route path="*" element={<RedirectOnRefresh />} />
       </Routes>
     </Router>
