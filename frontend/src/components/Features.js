@@ -6,14 +6,14 @@ export default function Features() {
   const { t } = useTranslation();
 
   return (
-    <div className="features-page">
+    <div className="features-page app">
       <header className="nav">
         <div className="brand">
           <img src="/logo.png" className="logo" alt="InstantSaver" />
           <span>InstantSaver</span>
         </div>
         <nav className="links">
-          <a href="/">← Home</a>
+          <a href="/">← {t("nav_home", "Home")}</a>
         </nav>
       </header>
 
