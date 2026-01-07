@@ -283,23 +283,17 @@ body {
   outline: 3px solid rgba(99,102,241,0.3);
   outline-offset: 2px;
 }
-
-/* 🎯 MOBILE PERFECT - HORIZONTAL SUBTABS (FORCE SINGLE LINE) */
+/* 🎯 MOBILE PERFECT - 2 Above + 3 Below Layout */
 @media (max-width: 768px) {
-  .hero { 
-    padding: 20px 16px !important; 
-  }
+  .hero { padding: 20px 16px !important; }
+  .hero h1 { font-size: 28px !important; line-height: 1.2 !important; }
   
-  .hero h1 { 
-    font-size: 28px !important; 
-    line-height: 1.2 !important; 
-  }
-  
+  /* MOBILE MAIN TABS */
   .tabs { 
     gap: 12px !important; 
     padding: 0 8px;
+    flex-wrap: nowrap !important;
   }
-  
   .tab { 
     padding: 14px 20px !important; 
     font-size: 16px !important; 
@@ -307,65 +301,72 @@ body {
     min-width: 120px;
   }
 
-  /* FORCE HORIZONTAL SUBTABS - NO VERTICAL STACK */
+  /* 🔥 MOBILE SUBTABS - 2 ROWS PERFECT LAYOUT */
   .subtabs {
     display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    -webkit-overflow-scrolling: touch !important;
-    padding: 16px 12px !important;
-    gap: 10px !important;
-    justify-content: flex-start !important;
-    margin: 20px 0 32px !important;
-    scrollbar-width: none !important;
-    -ms-overflow-style: none !important;
+    flex-direction: column !important; /* VERTICAL ROWS */
+    gap: 12px !important;
+    justify-content: center !important;
+    align-items: center !important;
+    margin: 24px 0 32px !important;
+    padding: 0 !important;
   }
 
-  .subtabs::-webkit-scrollbar {
-    display: none !important;
+  /* ROW 1: All(Reels) + Post (2 items) */
+  .subtabs::before {
+    content: '';
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    max-width: 320px;
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+
+  /* ROW 2: Reels + IGTV + Carousel (3 items) */
+  .subtabs > div {
+    display: flex !important;
+    gap: 10px;
+    width: 100%;
+    max-width: 380px;
+    justify-content: center;
+    flex-wrap: wrap;
   }
 
   .subtab {
-    flex: 0 0 auto !important;
-    white-space: nowrap !important;
-    min-width: 105px !important;
-    max-width: 135px !important;
-    padding: 12px 16px !important;
-    font-size: 13px !important;
+    flex: 1 !important;
+    min-width: 100px !important;
+    max-width: 130px !important;
+    padding: 14px 16px !important;
+    font-size: 14px !important;
     font-weight: 600 !important;
     border-width: 2px !important;
+    border-radius: 14px !important;
   }
 
   .subtab.active {
-    min-width: 115px !important;
-    padding: 14px 18px !important;
-    font-size: 14px !important;
+    padding: 16px 20px !important;
+    font-size: 15px !important;
+    min-height: 52px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  .preview-improved {
-    margin: 20px 8px !important;
-    padding: 20px !important;
-  }
+  /* Perfect spacing */
+  .preview-improved { margin: 24px 12px !important; padding: 24px !important; }
 }
 
-/* Extra small phones */
+/* Extra small phones - 2x2 grid */
 @media (max-width: 480px) {
-  .subtab {
-    min-width: 95px !important;
-    padding: 10px 12px !important;
-    font-size: 12px !important;
+  .subtabs > div {
+    max-width: 340px !important;
+    gap: 8px !important;
   }
-}
-
-/* iPhone Safari fixes */
-@supports (-webkit-touch-callout: none) {
-  .subtabs {
-    scroll-snap-type: x mandatory;
-    scroll-padding-left: 16px;
-  }
+  
   .subtab {
-    scroll-snap-align: start;
+    min-width: 90px !important;
+    padding: 12px 14px !important;
+    font-size: 13px !important;
   }
 }
