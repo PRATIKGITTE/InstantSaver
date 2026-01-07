@@ -5,6 +5,7 @@ import { Helmet } from "react-helmet";
 
 import DownloaderForm from "./components/DownloaderForm";
 import FAQ from "./components/FAQ";
+import Features from "./components/Features";  // ✅ NEW
 import Contact from "./components/Contact";
 import "./App.css";
 import InstagramInfo from "./components/InstagramInfo";
@@ -30,10 +31,9 @@ const YT_TYPES = [
   { id: "long", label: "Long Video" }
 ];
 
-// ✅ FIXED Refresh Guard - ONLY triggers on REAL F5 refresh
+// ✅ FIXED Refresh Guard - ONLY F5 refresh
 function RedirectOnRefresh() {
   useEffect(() => {
-    // performance.navigation.type === 1 = REAL browser refresh (F5)
     if (performance.navigation.type === 1 && window.location.pathname !== "/") {
       window.location.href = "/";
     }
@@ -62,7 +62,7 @@ export default function App() {
       </Helmet>
 
       <Routes>
-        {/* ✅ HOME PAGE */}
+        {/* ✅ HOME PAGE - #features scroll works */}
         <Route path="/" element={
           <div className="app">
             <header className="nav">
@@ -156,6 +156,7 @@ export default function App() {
               )}
             </section>
 
+            {/* ✅ #features scroll target */}
             <section id="features" className="features">
               <h2>{t("features_title", "Everything in one place")}</h2>
               <div className="feature-grid">
@@ -186,6 +187,9 @@ export default function App() {
             </footer>
           </div>
         } />
+
+        {/* ✅ FEATURES PAGE - Refresh → Home */}
+        <Route path="/features" element={<><RedirectOnRefresh /><Features /></>} />
 
         {/* ✅ FAQ PAGE - Refresh → Home */}
         <Route path="/faq" element={<><RedirectOnRefresh /><FAQ /></>} />
