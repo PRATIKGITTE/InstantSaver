@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet";
 
 import DownloaderForm from "./components/DownloaderForm";
 import FAQ from "./components/FAQ";
-import Features from "./components/Features";  // ✅ NEW
+import Features from "./components/Features";
 import Contact from "./components/Contact";
 import "./App.css";
 import InstagramInfo from "./components/InstagramInfo";
@@ -31,10 +31,14 @@ const YT_TYPES = [
   { id: "long", label: "Long Video" }
 ];
 
-// ✅ FIXED Refresh Guard - ONLY F5 refresh
+// ✅ FIXED Refresh Guard - Works on ALL routes including #features, #faq
 function RedirectOnRefresh() {
   useEffect(() => {
-    if (performance.navigation.type === 1 && window.location.pathname !== "/") {
+    // Check if it's a real refresh AND not on homepage
+    const isRealRefresh = performance.navigation.type === 1;
+    const currentPath = window.location.pathname + window.location.hash;
+    
+    if (isRealRefresh && currentPath !== "/" && currentPath !== "/#features" && currentPath !== "/#faq") {
       window.location.href = "/";
     }
   }, []);
@@ -62,15 +66,17 @@ export default function App() {
       </Helmet>
 
       <Routes>
-        {/* ✅ HOME PAGE - #features scroll works */}
+        {/* ✅ HOME PAGE - #features & #faq scroll + refresh to top */}
         <Route path="/" element={
           <div className="app">
+            {/* ✅ Scroll to top on homepage refresh */}
+            <RedirectOnRefresh />
+            
             <header className="nav">
               <div className="brand">
                 <img src="/logo.png" className="logo" alt={t("app_title", "InstantSaver")} />
                 <span>{t("app_title", "InstantSaver")}</span>
               </div>
-
               <nav className="links">
                 <a href="#features">{t("nav_features", "Features")}</a>
                 <a href="#faq">{t("nav_faq", "FAQ")}</a>
@@ -175,7 +181,10 @@ export default function App() {
               </div>
             </section>
 
-            <FAQ />
+            {/* ✅ #faq scroll target */}
+            <section id="faq" className="faq-section">
+              <FAQ />
+            </section>
 
             <footer className="footer">
               <div className="footer-brand">
@@ -188,16 +197,16 @@ export default function App() {
           </div>
         } />
 
-        {/* ✅ FEATURES PAGE - Refresh → Home */}
+        {/* ✅ FEATURES PAGE */}
         <Route path="/features" element={<><RedirectOnRefresh /><Features /></>} />
 
-        {/* ✅ FAQ PAGE - Refresh → Home */}
+        {/* ✅ FAQ PAGE */}
         <Route path="/faq" element={<><RedirectOnRefresh /><FAQ /></>} />
 
-        {/* ✅ CONTACT PAGE - Refresh → Home */}
+        {/* ✅ CONTACT PAGE */}
         <Route path="/contact" element={<><RedirectOnRefresh /><Contact /></>} />
         
-        {/* ✅ CATCH-ALL → Home */}
+        {/* ✅ CATCH-ALL */}
         <Route path="*" element={<RedirectOnRefresh />} />
       </Routes>
     </Router>
