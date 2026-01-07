@@ -153,13 +153,23 @@ function Home() {
         )}
       </section>
 
-      {/* ================= FEATURES ================= */}
-      <section id="features" className="features">
-        <h2>Everything in one place</h2>
-      </section>
-    </div>
-  );
-}
+      {/* ================= FEATURES ================= */} <section id="features" className="features"> 
+        <h2>{t("features_title", "Everything in one place")}</h2> 
+        <div className="feature-grid"> <div className="card"> 
+        <h3>Fast & Smart</h3> <p>Instant preview & download with optimized pipelines.</p> 
+        </div> <div className="card"> <h3>Free to Use</h3> 
+        <p>No login. No watermark. No limits.</p> </div> 
+        <div className="card"> <h3>Unlimited</h3> 
+        <p>Download as much as you want.</p> 
+        </div> </div> </section> 
+        
+      {/* ================= FOOTER ================= */} 
+        <footer className="footer"> <div className="footer-brand"> 
+        <img src="/logo.png" className="logo small" alt={t("app_title", "InstantSaver")} /> 
+        <strong>{t("app_title", "InstantSaver")}</strong> </div> 
+        <p> © {new Date().getFullYear()} InstantSaver. All rights reserved. </p> 
+        <p className="disclaimer"> Downloads are fetched from public CDNs. Please respect platform terms. </p> 
+        </footer> </div> } />
 
 /* ===================== APP ROUTER ===================== */
 
