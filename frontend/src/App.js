@@ -30,19 +30,14 @@ const YT_TYPES = [
   { id: "long", label: "Long Video" }
 ];
 
-// ✅ REFRESH-TO-HOME Component
+// ✅ FIXED Refresh Guard - ONLY triggers on REAL F5 refresh
 function RedirectOnRefresh() {
-  const navigate = useNavigate();
-  const location = useLocation();
-
   useEffect(() => {
-    // Redirect /faq, /contact → / on refresh
-    if (location.pathname !== "/" && !sessionStorage.getItem("direct-nav")) {
-      sessionStorage.setItem("direct-nav", "true");
-      navigate("/", { replace: true });
+    // performance.navigation.type === 1 = REAL browser refresh (F5)
+    if (performance.navigation.type === 1 && window.location.pathname !== "/") {
+      window.location.href = "/";
     }
-  }, [location.pathname, navigate]);
-
+  }, []);
   return null;
 }
 
@@ -190,23 +185,13 @@ export default function App() {
               <p className="disclaimer">{t("footer_disclaimer", "Disclaimer: All logos and trademarks belong to their respective owners. Downloads are fetched directly from public CDNs. Please respect platform terms.")}</p>
             </footer>
           </div>
-        } 
-        />
+        } />
 
-        {/* ✅ FAQ + CONTACT - Auto-redirect on refresh */}
+        {/* ✅ FAQ PAGE - Refresh → Home */}
         <Route path="/faq" element={<><RedirectOnRefresh /><FAQ /></>} />
+
+        {/* ✅ CONTACT PAGE - Refresh → Home */}
         <Route path="/contact" element={<><RedirectOnRefresh /><Contact /></>} />
-
-          // ✅ REPLACE your RedirectOnRefresh with THIS (3 lines only)
-function RedirectOnRefresh() {
-  useEffect(() => {
-    if (performance.navigation.type === 1 && window.location.pathname !== "/") {
-      window.location.href = "/";
-    }
-  }, []);
-  return null;
-}
-
         
         {/* ✅ CATCH-ALL → Home */}
         <Route path="*" element={<RedirectOnRefresh />} />
