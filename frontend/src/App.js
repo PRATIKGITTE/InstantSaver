@@ -67,6 +67,13 @@ export default function App() {
   const [previewFormat, setPreviewFormat] = useState("");
   const [previewUsername, setPreviewUsername] = useState("");
 
+  // ✅ Clear preview function
+  const clearPreview = () => {
+    setPreviewUrl("");
+    setPreviewFormat("");
+    setPreviewUsername("");
+  };
+
   return (
     <Router>
       <Helmet>
@@ -79,7 +86,7 @@ export default function App() {
       </Helmet>
 
       <Routes>
-        {/* ✅ HOME PAGE - NEW LAYOUT: Preview ABOVE Subtabs */}
+        {/* ✅ HOME PAGE - PERFECT LAYOUT */}
         <Route path="/" element={
           <div className="app">
             <RedirectOnRefresh />
@@ -109,7 +116,7 @@ export default function App() {
               <h1>{t("hero_title", "Online Video Downloader")}</h1>
               <p>{t("hero_desc", "Download Instagram Reels/Posts & YouTube Shorts/Live/Long — fast, free, no login.")}</p>
 
-              {/* ✅ TABS */}
+              {/* 1. MAIN TABS */}
               <div className="tabs">
                 {TABS.map((tTab) => (
                   <button
@@ -122,31 +129,7 @@ export default function App() {
                 ))}
               </div>
 
-              {/* ✅ NEW ORDER: LINK PASTE PREVIEW FIRST */}
-              <DownloaderForm
-                platform={platform}
-                igType={igType}
-                ytType={ytType}
-                setPreviewUrl={setPreviewUrl}
-                setPreviewFormat={setPreviewFormat}
-                setPreviewUsername={setPreviewUsername}
-              />
-
-              {/* ✅ PREVIEW - Shows immediately after paste */}
-              {previewUrl && (
-                <div className="preview">
-                  <h3>{t("preview_title", "Preview")}</h3>
-                  {platform === "instagram" && previewUsername && (
-                    <p className="username">{t("posted_by", "Posted by @{{username}}").replace("{{username}}", previewUsername)}</p>
-                  )}
-                  <video controls width="100%" style={{ borderRadius: "12px", marginTop: "15px" }}>
-                    <source src={previewUrl} type={`video/${previewFormat || "mp4"}`} />
-                    {t("no_video_support", "Your browser does not support the video tag.")}
-                  </video>
-                </div>
-              )}
-
-              {/* ✅ SUBTABS - BELOW Preview */}
+              {/* 2. SUBTABS */}
               {platform === "instagram" && (
                 <div className="subtabs">
                   {IG_TYPES.map((tObj) => (
@@ -174,6 +157,43 @@ export default function App() {
                     </button>
                   ))}
                   <YouTubeInfo />
+                </div>
+              )}
+
+              {/* 3. 🔴 LINK PASTE + DOWNLOAD - Perfect position */}
+              <DownloaderForm
+                platform={platform}
+                igType={igType}
+                ytType={ytType}
+                setPreviewUrl={setPreviewUrl}
+                setPreviewFormat={setPreviewFormat}
+                setPreviewUsername={setPreviewUsername}
+              />
+
+              {/* 4. ✨ GORGEOUS PREVIEW */}
+              {previewUrl && (
+                <div className="preview-improved">
+                  <div className="preview-header">
+                    <h3>{t("preview_title", "Preview")}</h3>
+                    <button 
+                      className="clear-preview" 
+                      onClick={clearPreview}
+                      aria-label="Clear preview"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  
+                  {platform === "instagram" && previewUsername && (
+                    <p className="username">Posted by @{previewUsername}</p>
+                  )}
+                  
+                  <div className="video-container">
+                    <video controls preload="metadata" width="100%">
+                      <source src={previewUrl} type={`video/${previewFormat || "mp4"}`} />
+                      {t("no_video_support", "Your browser does not support the video tag.")}
+                    </video>
+                  </div>
                 </div>
               )}
             </section>
