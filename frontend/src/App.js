@@ -112,7 +112,7 @@ export default function App() {
               </nav>
             </header>
 
-            <section className="hero">
+          <section className="hero">
   <h1>{t("hero_title", "Online Video Downloader")}</h1>
   <p>{t("hero_desc", "Download Instagram Reels/Posts & YouTube Shorts/Live/Long — fast, free, no login.")}</p>
 
@@ -129,78 +129,124 @@ export default function App() {
     ))}
   </div>
 
-  {/* 2. SUBTABS */}
+  {/* 2. SUBTABS + LINK PASTE + PREVIEW + InstagramInfo */}
   {platform === "instagram" && (
-    <div className="subtabs">
-      {IG_TYPES.map((tObj) => (
-        <button
-          key={tObj.id}
-          className={`subtab ${igType === tObj.id ? "active" : ""}`}
-          onClick={() => setIgType(tObj.id)}
-        >
-          {tObj.label}
-        </button>
-      ))}
+    <div>
+      {/* Instagram SUBTABS */}
+      <div className="subtabs">
+        {IG_TYPES.map((tObj) => (
+          <button
+            key={tObj.id}
+            className={`subtab ${igType === tObj.id ? "active" : ""}`}
+            onClick={() => setIgType(tObj.id)}
+          >
+            {tObj.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 🔴 LINK PASTE + PREVIEW - EXACTLY HERE */}
+      <DownloaderForm
+        platform={platform}
+        igType={igType}
+        ytType={ytType}
+        setPreviewUrl={setPreviewUrl}
+        setPreviewFormat={setPreviewFormat}
+        setPreviewUsername={setPreviewUsername}
+      />
+
+      {previewUrl && (
+        <div className="preview-improved">
+          <div className="preview-header">
+            <h3>{t("preview_title", "Preview")}</h3>
+            <button 
+              className="clear-preview" 
+              onClick={() => {
+                setPreviewUrl("");
+                setPreviewFormat("");
+                setPreviewUsername("");
+              }}
+              aria-label="Clear preview"
+            >
+              ×
+            </button>
+          </div>
+          {platform === "instagram" && previewUsername && (
+            <p className="username">Posted by @{previewUsername}</p>
+          )}
+          <div className="video-container">
+            <video controls preload="metadata" width="100%">
+              <source src={previewUrl} type={`video/${previewFormat || "mp4"}`} />
+              {t("no_video_support", "Your browser does not support the video tag.")}
+            </video>
+          </div>
+        </div>
+      )}
+
+      {/* InstagramInfo BELOW Preview */}
       <InstagramInfo />
     </div>
   )}
 
   {platform === "youtube" && (
-    <div className="subtabs">
-      {YT_TYPES.map((tObj) => (
-        <button
-          key={tObj.id}
-          className={`subtab ${ytType === tObj.id ? "active" : ""}`}
-          onClick={() => setYtType(tObj.id)}
-        >
-          {tObj.label}
-        </button>
-      ))}
+    <div>
+      {/* YouTube SUBTABS */}
+      <div className="subtabs">
+        {YT_TYPES.map((tObj) => (
+          <button
+            key={tObj.id}
+            className={`subtab ${ytType === tObj.id ? "active" : ""}`}
+            onClick={() => setYtType(tObj.id)}
+          >
+            {tObj.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 🔴 LINK PASTE + PREVIEW - EXACTLY HERE */}
+      <DownloaderForm
+        platform={platform}
+        igType={igType}
+        ytType={ytType}
+        setPreviewUrl={setPreviewUrl}
+        setPreviewFormat={setPreviewFormat}
+        setPreviewUsername={setPreviewUsername}
+      />
+
+      {previewUrl && (
+        <div className="preview-improved">
+          <div className="preview-header">
+            <h3>{t("preview_title", "Preview")}</h3>
+            <button 
+              className="clear-preview" 
+              onClick={() => {
+                setPreviewUrl("");
+                setPreviewFormat("");
+                setPreviewUsername("");
+              }}
+              aria-label="Clear preview"
+            >
+              ×
+            </button>
+          </div>
+          {platform === "instagram" && previewUsername && (
+            <p className="username">Posted by @{previewUsername}</p>
+          )}
+          <div className="video-container">
+            <video controls preload="metadata" width="100%">
+              <source src={previewUrl} type={`video/${previewFormat || "mp4"}`} />
+              {t("no_video_support", "Your browser does not support the video tag.")}
+            </video>
+          </div>
+        </div>
+      )}
+
+      {/* YouTubeInfo BELOW Preview */}
       <YouTubeInfo />
     </div>
   )}
-
-  {/* 3. 🔴 LINK PASTE + PREVIEW - EXACTLY BELOW SUBTABS */}
-  <DownloaderForm
-    platform={platform}
-    igType={igType}
-    ytType={ytType}
-    setPreviewUrl={setPreviewUrl}
-    setPreviewFormat={setPreviewFormat}
-    setPreviewUsername={setPreviewUsername}
-  />
-
-  {/* 4. GORGEOUS PREVIEW */}
-  {previewUrl && (
-    <div className="preview-improved">
-      <div className="preview-header">
-        <h3>{t("preview_title", "Preview")}</h3>
-        <button 
-          className="clear-preview" 
-          onClick={() => {
-            setPreviewUrl("");
-            setPreviewFormat("");
-            setPreviewUsername("");
-          }}
-          aria-label="Clear preview"
-        >
-          ×
-        </button>
-      </div>
-      
-      {platform === "instagram" && previewUsername && (
-        <p className="username">Posted by @{previewUsername}</p>
-      )}
-      
-      <div className="video-container">
-        <video controls preload="metadata" width="100%">
-          <source src={previewUrl} type={`video/${previewFormat || "mp4"}`} />
-          {t("no_video_support", "Your browser does not support the video tag.")}
-        </video>
-      </div>
-    </div>
-  )}
 </section>
+
 
 
             {/* ✅ #features scroll target */}
