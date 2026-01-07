@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet";
 
@@ -30,16 +30,16 @@ const YT_TYPES = [
   { id: "long", label: "Long Video" }
 ];
 
-// 🔥 REFRESH DETECTOR - Only triggers on ACTUAL page refresh
-const RefreshGuard = ({ pathname }) => {
+// ✅ SIMPLE Refresh Guard - Only on REAL refresh (F5)
+const RefreshGuard = () => {
+  const navigate = useNavigate();
+  
   useEffect(() => {
-    // Check if this is a page refresh (not programmatic navigation)
-    const isRefresh = performance.navigation.type === 1 || performance.getEntriesByType("navigation")[0]?.type === "reload";
-    
-    if (isRefresh && pathname !== "/") {
-      window.location.replace("https://instantsaver.in/");
+    // Only redirect if it's a real page refresh (not navigation)
+    if (performance.navigation.type === 1) {
+      navigate("/", { replace: true });
     }
-  }, [pathname]);
+  }, [navigate]);
 
   return null;
 };
@@ -59,28 +59,22 @@ export default function App() {
         <title>{t("app_title", "InstantSaver")} — {t("hero_title", "Online Video Downloader")}</title>
         <meta name="description" content={t("hero_desc", "Download Instagram Reels/Posts & YouTube Shorts/Live/Long — fast, free, no login.")} />
         <meta name="keywords" content="instagram downloader, youtube downloader, reels, shorts, video download" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="alternate" hrefLang="en" href="/" />
-        <link rel="alternate" hrefLang="hi" href="/hi" />
       </Helmet>
 
       <Routes>
-        {/* ✅ HOME PAGE - Hash scroll works */}
+        {/* ✅ HOME PAGE */}
         <Route path="/" element={
           <div className="app">
             <header className="nav">
               <div className="brand">
-                <img src="/logo.png" className="logo" alt={t("app_title", "InstantSaver")} />
-                <span>{t("app_title", "InstantSaver")}</span>
+                <img src="/logo.png" className="logo" alt="InstantSaver" />
+                <span>InstantSaver</span>
               </div>
-
               <nav className="links">
-                <a href="#features">{t("nav_features", "Features")}</a>
-                <a href="#faq">{t("nav_faq", "FAQ")}</a>
-                <a href="/contact">{t("nav_contact", "Contact")}</a>
-                
+                <a href="#features">Features</a>
+                <a href="#faq">FAQ</a>
+                <a href="/contact">Contact</a>
                 <select
-                  aria-label="Language"
                   value={i18n.language}
                   onChange={(e) => i18n.changeLanguage(e.target.value)}
                   style={{ marginLeft: 12, padding: 6, borderRadius: 6, border: "1px solid #ddd" }}
@@ -96,26 +90,26 @@ export default function App() {
               <p>{t("hero_desc", "Download Instagram Reels/Posts & YouTube Shorts/Live/Long — fast, free, no login.")}</p>
 
               <div className="tabs">
-                {TABS.map((tTab) => (
+                {TABS.map((tab) => (
                   <button
-                    key={tTab.id}
-                    className={`tab ${platform === tTab.id ? "active" : ""}`}
-                    onClick={() => setPlatform(tTab.id)}
+                    key={tab.id}
+                    className={`tab ${platform === tab.id ? "active" : ""}`}
+                    onClick={() => setPlatform(tab.id)}
                   >
-                    {tTab.label}
+                    {tab.label}
                   </button>
                 ))}
               </div>
 
               {platform === "instagram" && (
                 <div className="subtabs">
-                  {IG_TYPES.map((tObj) => (
+                  {IG_TYPES.map((type) => (
                     <button
-                      key={tObj.id}
-                      className={`subtab ${igType === tObj.id ? "active" : ""}`}
-                      onClick={() => setIgType(tObj.id)}
+                      key={type.id}
+                      className={`subtab ${igType === type.id ? "active" : ""}`}
+                      onClick={() => setIgType(type.id)}
                     >
-                      {tObj.label}
+                      {type.label}
                     </button>
                   ))}
                   <InstagramInfo />
@@ -124,13 +118,13 @@ export default function App() {
 
               {platform === "youtube" && (
                 <div className="subtabs">
-                  {YT_TYPES.map((tObj) => (
+                  {YT_TYPES.map((type) => (
                     <button
-                      key={tObj.id}
-                      className={`subtab ${ytType === tObj.id ? "active" : ""}`}
-                      onClick={() => setYtType(tObj.id)}
+                      key={type.id}
+                      className={`subtab ${ytType === type.id ? "active" : ""}`}
+                      onClick={() => setYtType(type.id)}
                     >
-                      {tObj.label}
+                      {type.label}
                     </button>
                   ))}
                   <YouTubeInfo />
@@ -148,114 +142,104 @@ export default function App() {
 
               {previewUrl && (
                 <div className="preview">
-                  <h3>{t("preview_title", "Preview")}</h3>
+                  <h3>Preview</h3>
                   {platform === "instagram" && previewUsername && (
-                    <p className="username">{t("posted_by", "Posted by @{{username}}").replace("{{username}}", previewUsername)}</p>
+                    <p className="username">Posted by @{previewUsername}</p>
                   )}
                   <video controls width="100%" style={{ borderRadius: "12px", marginTop: "15px" }}>
-                    <source src={previewUrl} type={`video/${previewFormat || "mp4"}`} />
-                    {t("no_video_support", "Your browser does not support the video tag.")}
+                    <source src={previewUrl} type="video/mp4" />
                   </video>
                 </div>
               )}
             </section>
 
-            {/* 🔥 FEATURES - #features */}
+            {/* Features - #features */}
             <section id="features" className="features">
-              <h2>{t("features_title", "Everything in one place")}</h2>
+              <h2>Everything in one place</h2>
               <div className="feature-grid">
                 <div className="card">
-                  <h3>{t("features_fast_title", "Fast & Smart")}</h3>
-                  <p>{t("features_fast_desc", "High-speed processing backed by optimized pipelines to preview & download instantly.")}</p>
+                  <h3>Fast & Smart</h3>
+                  <p>High-speed processing backed by optimized pipelines to preview & download instantly.</p>
                 </div>
                 <div className="card">
-                  <h3>{t("features_free_title", "Free to Use")}</h3>
-                  <p>{t("features_free_desc", "No signup. No paywall. Just paste your link, preview, and download.")}</p>
+                  <h3>Free to Use</h3>
+                  <p>No signup. No paywall. Just paste your link, preview, and download.</p>
                 </div>
                 <div className="card">
-                  <h3>{t("features_unlimited_title", "Unlimited")}</h3>
-                  <p>{t("features_unlimited_desc", "Use it as much as you like. No hidden limits.")}</p>
+                  <h3>Unlimited</h3>
+                  <p>Use it as much as you like. No hidden limits.</p>
                 </div>
               </div>
             </section>
 
-            {/* 🔥 FAQ Homepage - #faq */}
+            {/* FAQ - #faq */}
             <section id="faq" className="faq-section">
               <FAQ />
             </section>
 
             <footer className="footer">
               <div className="footer-brand">
-                <img src="/logo.png" className="logo small" alt={t("app_title", "InstantSaver")} />
-                <strong>{t("app_title", "InstantSaver")}</strong>
+                <img src="/logo.png" className="logo small" alt="InstantSaver" />
+                <strong>InstantSaver</strong>
               </div>
-              <p>© {new Date().getFullYear()} {t("app_title", "InstantSaver")}. All rights reserved.</p>
-              <p className="disclaimer">{t("footer_disclaimer", "Disclaimer: All logos and trademarks belong to their respective owners. Downloads are fetched directly from public CDNs. Please respect platform terms.")}</p>
+              <p>© {new Date().getFullYear()} InstantSaver. All rights reserved.</p>
+              <p className="disclaimer">Disclaimer: All logos and trademarks belong to their respective owners.</p>
             </footer>
           </div>
         } />
 
-        {/* 🔥 FEATURES PAGE - Show normally, refresh → home */}
-        <Route 
-          path="/features" 
-          element={
-            <>
-              <RefreshGuard pathname="/features" />
-              <div className="app">
-                <header className="nav">
-                  <div className="brand">
-                    <img src="/logo.png" className="logo" alt="InstantSaver" />
-                    <span>InstantSaver</span>
+        {/* FEATURES PAGE */}
+        <Route path="/features" element={
+          <>
+            <RefreshGuard />
+            <div className="app">
+              <header className="nav">
+                <div className="brand">
+                  <img src="/logo.png" className="logo" alt="InstantSaver" />
+                  <span>InstantSaver</span>
+                </div>
+                <nav className="links">
+                  <a href="/">← Home</a>
+                </nav>
+              </header>
+              <section className="features">
+                <h2>Features</h2>
+                <div className="feature-grid">
+                  <div className="card">
+                    <h3>Fast & Smart</h3>
+                    <p>High-speed processing backed by optimized pipelines.</p>
                   </div>
-                  <nav className="links">
-                    <a href="/">← Home</a>
-                  </nav>
-                </header>
-                <section id="features" className="features">
-                  <h2>Features</h2>
-                  <div className="feature-grid">
-                    <div className="card">
-                      <h3>Fast & Smart</h3>
-                      <p>High-speed processing backed by optimized pipelines to preview & download instantly.</p>
-                    </div>
-                    <div className="card">
-                      <h3>Free to Use</h3>
-                      <p>No signup. No paywall. Just paste your link, preview, and download.</p>
-                    </div>
-                    <div className="card">
-                      <h3>Unlimited</h3>
-                      <p>Use it as much as you like. No hidden limits.</p>
-                    </div>
+                  <div className="card">
+                    <h3>Free to Use</h3>
+                    <p>No signup. No paywall. Just download.</p>
                   </div>
-                </section>
-              </div>
-            </>
-          } 
-        />
+                  <div className="card">
+                    <h3>Unlimited</h3>
+                    <p>No hidden limits.</p>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </>
+        } />
 
-        {/* 🔥 FAQ PAGE - Show normally, refresh → home */}
-        <Route 
-          path="/faq" 
-          element={
-            <>
-              <RefreshGuard pathname="/faq" />
-              <FAQ />
-            </>
-          } 
-        />
+        {/* FAQ PAGE */}
+        <Route path="/faq" element={
+          <>
+            <RefreshGuard />
+            <FAQ />
+          </>
+        } />
 
-        {/* 🔥 CONTACT PAGE - Show normally, refresh → home */}
-        <Route 
-          path="/contact" 
-          element={
-            <>
-              <RefreshGuard pathname="/contact" />
-              <Contact />
-            </>
-          } 
-        />
+        {/* CONTACT PAGE */}
+        <Route path="/contact" element={
+          <>
+            <RefreshGuard />
+            <Contact />
+          </>
+        } />
 
-        {/* 🔥 CATCH-ALL → Home */}
+        {/* Catch all */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
