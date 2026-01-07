@@ -16,6 +16,7 @@ body {
   background: linear-gradient(to right, var(--bg1), var(--bg2));
   color: var(--text);
   font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji;
+  line-height: 1.6;
 }
 
 /* Nav */
@@ -61,14 +62,22 @@ body {
   color: var(--muted);
 }
 
-/* Tabs */
-.tabs { display: inline-flex; gap: 8px; margin: 18px 0 8px; }
+/* MAIN TABS */
+.tabs { 
+  display: flex !important;
+  gap: 8px; 
+  margin: 24px 0 16px;
+  justify-content: center;
+}
 .tab {
-  padding: 10px 16px;
+  padding: 12px 20px;
   border: 1px solid #e5e7eb;
   background: var(--white);
   border-radius: 999px;
   cursor: pointer;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .tab.active {
   border-color: var(--brand);
@@ -76,39 +85,55 @@ body {
   background: var(--brand);
 }
 
+/* 🎯 MOBILE PERFECT SUBTABS - HORIZONTAL LINE ONLY */
 .subtabs {
-  display: flex;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
   gap: 8px;
-  flex-wrap: wrap;
   justify-content: center;
-  margin: 20px 0 32px 0; /* ✅ More space for perfect preview below */
+  margin: 16px 0 28px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 8px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+
+.subtabs::-webkit-scrollbar {
+  display: none;
+}
+
 .subtab {
-  padding: 8px 12px;
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  min-width: 110px;
+  padding: 10px 14px !important;
   border: 1px solid #e5e7eb;
-  background: #fff;
+  background: var(--white);
   border-radius: 12px;
   cursor: pointer;
   font-size: 14px;
+  font-weight: 500;
+  flex-shrink: 0 !important;
 }
 .subtab.active { 
-  border-color: var(--primary); 
-  color: #fff; 
-  background: var(--primary); 
+  border-color: var(--primary) !important; 
+  color: #fff !important; 
+  background: var(--primary) !important; 
 }
 
-/* ✅ PERFECT PREVIEW STYLING - NEW */
+/* PERFECT PREVIEW */
 .preview-improved {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 20px;
   padding: 24px;
-  margin: 24px 0;
+  margin: 24px auto;
   box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+  max-width: 960px;
   position: relative;
   overflow: hidden;
-  max-width: 960px;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 .preview-improved::before {
@@ -167,7 +192,6 @@ body {
   border-radius: 16px;
   padding: 16px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-  overflow: hidden;
 }
 
 .video-container video {
@@ -187,140 +211,161 @@ body {
 /* Features */
 .features {
   max-width: 1100px;
-  margin: 56px auto;
+  margin: 64px auto;
   padding: 0 16px;
   text-align: center;
 }
-.features h2 { margin-bottom: 18px; }
+.features h2 { margin-bottom: 24px; font-size: 32px; }
 .feature-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit,minmax(240px,1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit,minmax(280px,1fr));
+  gap: 24px;
 }
 .card {
   background: #ffffffdd;
-  padding: 18px;
-  border-radius: 16px;
-  box-shadow: 0 8px 22px rgba(0,0,0,.06);
+  padding: 28px;
+  border-radius: 20px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.08);
+  transition: transform 0.3s ease;
+}
+.card:hover {
+  transform: translateY(-4px);
 }
 
 /* Footer */
 .footer {
   text-align: center;
-  padding: 36px 16px 48px;
+  padding: 48px 24px 64px;
   color: var(--muted);
 }
 .footer .footer-brand {
   display: inline-flex;
-  gap: 8px;
+  gap: 12px;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 16px;
 }
 .footer .disclaimer {
   max-width: 900px;
-  margin: 10px auto 0;
-  font-size: 12px;
-  line-height: 1.4;
+  margin: 16px auto 0;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
-/* ---------- ad banner + small UI tweaks ---------- */
+/* Ad banner */
 .ad-banner {
   max-width: 960px;
-  margin: 14px auto;
-  padding: 8px;
-  border-radius: 10px;
-  background: linear-gradient(90deg, rgba(255,255,255,0.9), rgba(250,250,255,0.95));
-  box-shadow: 0 6px 18px rgba(15,23,42,0.06);
+  margin: 24px auto;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.95), rgba(250,250,255,0.98));
+  box-shadow: 0 8px 24px rgba(15,23,42,0.08);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .ad-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: space-between;
   width: 100%;
-  display:flex;
-  align-items:center;
-  gap:12px;
-  justify-content:space-between;
 }
 .ad-placeholder {
   background: #f3f4f6;
   color: #6b7280;
-  padding:8px 12px;
-  border-radius:8px;
+  padding: 10px 14px;
+  border-radius: 8px;
   font-size: 14px;
 }
 
-/* small accessibility tweaks */
-.input-box:focus, .btn:focus, .tab:focus {
-  outline: 3px solid rgba(99,102,241,0.18);
+/* Accessibility */
+.input-box:focus, .btn:focus, .tab:focus, .subtab:focus {
+  outline: 3px solid rgba(99,102,241,0.3);
   outline-offset: 2px;
 }
 
-/* Responsive */
+/* 🎯 MOBILE PERFECT - HORIZONTAL SUBTABS (FORCE SINGLE LINE) */
 @media (max-width: 768px) {
-  .hero { padding: 12px; }
-  .hero h1 { font-size: 32px; }
-  .subtabs { flex-direction: column; align-items: center; }
-  .subtab { min-width: 200px; }
-  .preview-improved { margin: 16px; padding: 20px; }
-}
+  .hero { 
+    padding: 20px 16px !important; 
+  }
+  
+  .hero h1 { 
+    font-size: 28px !important; 
+    line-height: 1.2 !important; 
+  }
+  
+  .tabs { 
+    gap: 12px !important; 
+    padding: 0 8px;
+  }
+  
+  .tab { 
+    padding: 14px 20px !important; 
+    font-size: 16px !important; 
+    flex: 1 !important;
+    min-width: 120px;
+  }
 
-/* ✅ MOBILE PERFECT HORIZONTAL SUBTABS */
-@media (max-width: 768px) {
+  /* FORCE HORIZONTAL SUBTABS - NO VERTICAL STACK */
   .subtabs {
     display: flex !important;
+    flex-direction: row !important;
     flex-wrap: nowrap !important;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    padding: 12px 0;
-    gap: 8px;
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE/Edge */
-    margin-bottom: 20px;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 16px 12px !important;
+    gap: 10px !important;
+    justify-content: flex-start !important;
+    margin: 20px 0 32px !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
   }
 
   .subtabs::-webkit-scrollbar {
-    display: none; /* Chrome/Safari */
+    display: none !important;
   }
 
   .subtab {
     flex: 0 0 auto !important;
-    white-space: nowrap;
-    min-width: 110px;
-    max-width: 140px;
+    white-space: nowrap !important;
+    min-width: 105px !important;
+    max-width: 135px !important;
     padding: 12px 16px !important;
     font-size: 13px !important;
-    font-weight: 500;
+    font-weight: 600 !important;
+    border-width: 2px !important;
   }
 
-  /* Active tab bigger on mobile */
   .subtab.active {
-    min-width: 120px !important;
+    min-width: 115px !important;
+    padding: 14px 18px !important;
     font-size: 14px !important;
   }
 
-  .hero { padding: 16px 12px !important; }
-  .hero h1 { font-size: 28px !important; line-height: 1.2 !important; }
-  .tabs { gap: 12px !important; }
-  .tab { padding: 12px 20px !important; font-size: 16px !important; }
-}
-
-@supports (-webkit-touch-callout: none) {
-  .subtabs {
-    scroll-snap-type: x mandatory;
-    scroll-padding-left: 12px;
-  }
-  .subtab {
-    scroll-snap-align: start;
+  .preview-improved {
+    margin: 20px 8px !important;
+    padding: 20px !important;
   }
 }
 
 /* Extra small phones */
 @media (max-width: 480px) {
   .subtab {
-    min-width: 100px !important;
+    min-width: 95px !important;
     padding: 10px 12px !important;
     font-size: 12px !important;
+  }
+}
+
+/* iPhone Safari fixes */
+@supports (-webkit-touch-callout: none) {
+  .subtabs {
+    scroll-snap-type: x mandatory;
+    scroll-padding-left: 16px;
+  }
+  .subtab {
+    scroll-snap-align: start;
   }
 }
