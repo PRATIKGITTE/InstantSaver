@@ -285,77 +285,73 @@ body {
 }
 
 
-/* 🔥 MOBILE FORCE - SAME HORIZONTAL LINE AS DESKTOP */
+/* 🔥 MOBILE PERFECT - Instagram Style 2x3 Grid */
 @media (max-width: 768px) {
-  .hero { padding: 20px 12px !important; }
+  .hero { padding: 20px 16px !important; }
   .hero h1 { font-size: 28px !important; line-height: 1.2 !important; }
   
-  /* MAIN TABS - Perfect mobile */
+  /* Main tabs */
   .tabs { 
     gap: 12px !important;
-    padding: 4px 8px !important;
-    justify-content: center !important;
+    padding: 0 8px !important;
   }
-  
-  .tab {
-    padding: 14px 18px !important;
-    font-size: 16px !important;
-    min-width: 130px !important;
+  .tab { 
+    padding: 14px 20px !important; 
+    font-size: 16px !important; 
     flex: 1 !important;
   }
 
-  /* 🔥 SUBTABS - FORCE SINGLE HORIZONTAL LINE */
+  /* 🎯 MOBILE SUBTABS - PERFECT 2x3 GRID */
   .subtabs {
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    gap: 8px !important;
-    padding: 16px 4px !important;
-    margin: 24px 0 32px !important;
-    -webkit-overflow-scrolling: touch !important;
-    scrollbar-width: none !important;
-    -ms-overflow-style: none !important;
-    justify-content: flex-start !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important; /* 2 columns */
+    grid-template-rows: auto auto !important;   /* 2 rows */
+    gap: 12px !important;
+    max-width: 340px !important;
+    margin: 24px auto 32px !important;
+    padding: 0 12px !important;
   }
 
-  .subtabs::-webkit-scrollbar {
-    display: none !important;
-  }
+  /* Reorder for perfect layout */
+  .subtab:nth-child(1) { grid-row: 1; grid-column: 1; }  /* All - Row1 Col1 */
+  .subtab:nth-child(2) { grid-row: 1; grid-column: 2; }  /* Reels - Row1 Col2 */
+  .subtab:nth-child(3) { grid-row: 2; grid-column: 1; }  /* Post - Row2 Col1 */
+  .subtab:nth-child(4) { grid-row: 2; grid-column: 2; }  /* IGTV - Row2 Col2 */
+  .subtab:nth-child(5) { grid-row: 3; grid-column: 1 / span 2; } /* Carousel - Full width */
 
   .subtab {
-    flex: 0 0 auto !important;
-    white-space: nowrap !important;
-    min-width: 95px !important;
-    max-width: 125px !important;
-    padding: 12px 14px !important;
-    font-size: 13px !important;
+    padding: 14px 16px !important;
+    font-size: 14px !important;
     font-weight: 600 !important;
     border: 2px solid #e5e7eb !important;
-    border-radius: 14px !important;
-    flex-shrink: 0 !important;
+    border-radius: 16px !important;
+    min-height: 52px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 
   .subtab.active {
-    border-color: var(--primary) !important;
+    border-color: #6366f1 !important;
+    background: #6366f1 !important;
     color: white !important;
-    background: var(--primary) !important;
-    min-width: 105px !important;
-    padding: 14px 16px !important;
+    font-size: 15px !important;
   }
 
-  .preview-improved {
-    margin: 24px 8px !important;
-    padding: 24px !important;
-  }
+  .preview-improved { margin: 24px 12px !important; padding: 24px !important; }
 }
 
-/* iPhone SE / Small screens */
+/* Small phones */
 @media (max-width: 400px) {
+  .subtabs {
+    max-width: 300px !important;
+    gap: 10px !important;
+  }
+  
   .subtab {
-    min-width: 85px !important;
-    padding: 10px 12px !important;
-    font-size: 12px !important;
+    padding: 12px 14px !important;
+    font-size: 13px !important;
+    min-height: 48px !important;
   }
 }
+
