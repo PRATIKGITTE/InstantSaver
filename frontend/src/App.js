@@ -201,6 +201,7 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/faq" element={<FAQ />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/features" element={<Features />} />
       </Routes>
     </Router>
   );
