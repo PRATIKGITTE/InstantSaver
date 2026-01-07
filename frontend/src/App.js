@@ -66,7 +66,7 @@ function Home() {
         </div>
 
         <nav className="links">
-          <a href="#features">{t("nav_features", "Features")}</a>
+          <Link to="/features">{t("nav_features", "Features")}</Link>
           <Link to="/faq">{t("nav_faq", "FAQ")}</Link>
           <Link to="/contact">{t("nav_contact", "Contact")}</Link>
 
