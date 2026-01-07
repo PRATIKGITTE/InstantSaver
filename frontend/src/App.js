@@ -1,6 +1,13 @@
 // src/App.js
-import React, { useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useLocation,
+  useNavigate,
+  Link
+} from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet";
 
@@ -12,7 +19,7 @@ import YouTubeInfo from "./components/YouTubeInfo";
 
 import "./App.css";
 
-/* ===================== CONSTANTS ===================== */
+/* ================= CONSTANTS ================= */
 
 const TABS = [
   { id: "instagram", label: "Instagram" },
@@ -30,13 +37,13 @@ const IG_TYPES = [
 const YT_TYPES = [
   { id: "auto", label: "All (Shorts / Live / Long)" },
   { id: "shorts", label: "Shorts" },
-  { id: "live", label: "Live (if available)" },
+  { id: "live", label: "Live" },
   { id: "long", label: "Long Video" }
 ];
 
-/* ===================== HOME PAGE ===================== */
+/* ================= HOME LAYOUT ================= */
 
-function Home() {
+function HomeLayout() {
   const { t, i18n } = useTranslation();
 
   const [platform, setPlatform] = useState("instagram");
@@ -50,7 +57,7 @@ function Home() {
   return (
     <div className="app">
       <Helmet>
-        <title>InstantSaver – Online Video Downloader</title>
+        <title>InstantSaver – Instagram & YouTube Downloader</title>
         <meta
           name="description"
           content="Download Instagram Reels, Posts & YouTube Shorts, Live or Long videos. Fast, free & no login."
@@ -58,7 +65,7 @@ function Home() {
         <link rel="canonical" href="https://instantsaver.in/" />
       </Helmet>
 
-      {/* ================= HEADER ================= */}
+      {/* HEADER */}
       <header className="nav">
         <div className="brand">
           <img src="/logo.png" className="logo" alt="InstantSaver" />
@@ -66,15 +73,13 @@ function Home() {
         </div>
 
         <nav className="links">
-          <Link to="/features">{t("nav_features", "Features")}</Link>
-          <Link to="/faq">{t("nav_faq", "FAQ")}</Link>
-          <Link to="/contact">{t("nav_contact", "Contact")}</Link>
+          <Link to="/features">Features</Link>
+          <Link to="/faq">FAQ</Link>
+          <Link to="/contact">Contact</Link>
 
           <select
-            aria-label="Language"
             value={i18n.language}
             onChange={(e) => i18n.changeLanguage(e.target.value)}
-            style={{ marginLeft: 12, padding: 6 }}
           >
             <option value="en">English</option>
             <option value="hi">हिंदी</option>
@@ -82,21 +87,16 @@ function Home() {
         </nav>
       </header>
 
-      {/* ================= HERO ================= */}
+      {/* HERO */}
       <section className="hero">
-        <h1>{t("hero_title", "Online Video Downloader")}</h1>
-        <p>
-          {t(
-            "hero_desc",
-            "Download Instagram Reels/Posts & YouTube Shorts/Live/Long — fast, free, no login."
-          )}
-        </p>
+        <h1>Online Video Downloader</h1>
+        <p>Download Instagram & YouTube videos instantly.</p>
 
         <div className="tabs">
           {TABS.map((tab) => (
             <button
               key={tab.id}
-              className={`tab ${platform === tab.id ? "active" : ""}`}
+              className={platform === tab.id ? "active" : ""}
               onClick={() => setPlatform(tab.id)}
             >
               {tab.label}
@@ -106,13 +106,13 @@ function Home() {
 
         {platform === "instagram" && (
           <div className="subtabs">
-            {IG_TYPES.map((type) => (
+            {IG_TYPES.map((t) => (
               <button
-                key={type.id}
-                className={`subtab ${igType === type.id ? "active" : ""}`}
-                onClick={() => setIgType(type.id)}
+                key={t.id}
+                className={igType === t.id ? "active" : ""}
+                onClick={() => setIgType(t.id)}
               >
-                {type.label}
+                {t.label}
               </button>
             ))}
             <InstagramInfo />
@@ -121,13 +121,13 @@ function Home() {
 
         {platform === "youtube" && (
           <div className="subtabs">
-            {YT_TYPES.map((type) => (
+            {YT_TYPES.map((t) => (
               <button
-                key={type.id}
-                className={`subtab ${ytType === type.id ? "active" : ""}`}
-                onClick={() => setYtType(type.id)}
+                key={t.id}
+                className={ytType === t.id ? "active" : ""}
+                onClick={() => setYtType(t.id)}
               >
-                {type.label}
+                {t.label}
               </button>
             ))}
             <YouTubeInfo />
@@ -144,18 +144,13 @@ function Home() {
         />
 
         {previewUrl && (
-          <div className="preview">
-            <h3>{t("preview_title", "Preview")}</h3>
-            <video controls width="100%">
-              <source
-                src={previewUrl}
-                type={`video/${previewFormat || "mp4"}`}
-              />
-            </video>
-          </div>
+          <video controls width="100%">
+            <source src={previewUrl} />
+          </video>
         )}
       </section>
 
+      
       {/* ================= FEATURES (RESTORED) ================= */}
       <section id="features" className="features">
         <h2>{t("features_title", "Everything in one place")}</h2>
@@ -175,6 +170,9 @@ function Home() {
         </div>
       </section>
 
+      <FAQ />
+
+     
       {/* ================= FOOTER (RESTORED) ================= */}
       <footer className="footer">
         <div className="footer-brand">
@@ -191,17 +189,30 @@ function Home() {
     </div>
   );
 }
+/* ================= MAIN APP ================= */
 
-/* ===================== ROUTER ===================== */
+function RedirectOnRefresh() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.pathname !== "/") {
+      navigate("/", { replace: true });
+    }
+  }, []); // run once on refresh
+
+  return null;
+}
 
 export default function App() {
   return (
     <Router>
+      <RedirectOnRefresh />
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/faq" element={<FAQ />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/features" element={<Features />} />
+        <Route path="/" element={<HomeLayout />} />
+        <Route path="/features" element={<HomeLayout />} />
+        <Route path="/faq" element={<HomeLayout />} />
+        <Route path="/contact" element={<HomeLayout />} />
       </Routes>
     </Router>
   );
