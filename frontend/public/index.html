@@ -17,16 +17,13 @@
 
   <meta name="robots"
     content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
-<!-- FAVICONS + LOGO (Fixes Globe Icon) -->
-<link rel="icon" href="https://instantsaver.in/logo.svg" type="image/svg+xml" />
-<link rel="apple-touch-icon" href="https://instantsaver.in/logo.svg" />
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"InstantSaver","url":"https://instantsaver.in/","logo":"https://instantsaver.in/logo.svg"}</script>
 
-  <!-- ✅ CANONICAL -->
+  <!-- ================= CANONICAL ================= -->
   <link rel="canonical" href="https://instantsaver.in/" />
 
-  <!-- ================= BRAND ================= -->
-  <link rel="icon" href="https://instantsaver.in/logo.svg" type="image/svg+xml" />
+  <!-- ================= FAVICON / APP ICON ================= -->
+  <link rel="icon" href="%PUBLIC_URL%/logo.png" type="image/png" />
+  <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo.png" />
   <meta name="application-name" content="InstantSaver" />
   <meta name="theme-color" content="#0f172a" />
 
@@ -55,14 +52,14 @@
 
   <!-- ================= STRUCTURED DATA ================= -->
 
-  <!-- ✅ ORGANIZATION (LOGO FOR GOOGLE) -->
+  <!-- ✅ ORGANIZATION (CRITICAL FOR GOOGLE LOGO) -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "Organization",
     "name": "InstantSaver",
     "url": "https://instantsaver.in/",
-    "logo": "https://instantsaver.in/logo.svg"
+    "logo": "https://instantsaver.in/logo.png"
   }
   </script>
 
@@ -91,6 +88,39 @@
   }
   </script>
 
+  <!-- ✅ WEB APPLICATION -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "InstantSaver",
+    "description": "Free Instagram Reels & YouTube video downloader. Download in HD quality instantly.",
+    "url": "https://instantsaver.in/",
+    "applicationCategory": "MultimediaApplication",
+    "operatingSystem": "Android, iOS, Windows, MacOS, Linux",
+    "featureList": [
+      "Instagram Reels downloader",
+      "YouTube Shorts downloader",
+      "HD video download",
+      "No watermark"
+    ],
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
+
+</head>
+
+<body>
+  <noscript>You need to enable JavaScript to run this app.</noscript>
+  <div id="root"></div>
+</body>
+</html>
+
+
   <!-- ✅ FIXED: Homepage FAQ (2 questions only) -->
 <!--<script type="application/ld+json">
 {
@@ -108,41 +138,3 @@
   ]
 }
 </script> -->
-
-
-  <!-- ✅ WEBSITE APP - CRITICAL FOR DOWNLOADERS -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  "name": "InstantSaver",
-  "description": "Free Instagram Reels & YouTube video downloader. Download in HD quality instantly.",
-  "url": "https://instantsaver.in/",
-  "applicationCategory": "MultimediaApplication",
-  "operatingSystem": "Android, iOS, Windows, MacOS, Linux",
-  "featureList": [
-    "Instagram Reels downloader",
-    "YouTube Shorts downloader", 
-    "HD video download",
-    "No watermark"
-  ],
-  "offers": {
-    "@type": "Offer",
-    "price": "0",
-    "priceCurrency": "USD"
-  },
-  "aggregateRating": {
-    "@type": "AggregateRating",
-    "ratingValue": "4.9",
-    "reviewCount": "1500"
-  }
-}
-</script>
-
-</head>
-
-<body>
-  <noscript>You need to enable JavaScript to run this app.</noscript>
-  <div id="root"></div>
-</body>
-</html>
