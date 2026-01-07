@@ -34,12 +34,10 @@ const YT_TYPES = [
 // ✅ PERFECT Scroll + Refresh Fix
 function RedirectOnRefresh() {
   useEffect(() => {
-    // ✅ DISABLE browser scroll restoration
     if ('scrollRestoration' in history) {
       history.scrollRestoration = 'manual';
     }
 
-    // ✅ FORCE scroll to top - Multiple times to beat browser
     const scrollToTop = () => {
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     };
@@ -49,7 +47,6 @@ function RedirectOnRefresh() {
     setTimeout(scrollToTop, 100);
     setTimeout(scrollToTop, 500);
 
-    // ✅ Redirect ONLY non-home routes (not #features/#faq)
     if (performance.navigation.type === 1 && window.location.pathname !== "/") {
       window.location.href = "/";
     }
@@ -67,7 +64,6 @@ export default function App() {
   const [previewFormat, setPreviewFormat] = useState("");
   const [previewUsername, setPreviewUsername] = useState("");
 
-  // ✅ Clear preview function
   const clearPreview = () => {
     setPreviewUrl("");
     setPreviewFormat("");
@@ -86,7 +82,6 @@ export default function App() {
       </Helmet>
 
       <Routes>
-        {/* ✅ HOME PAGE - PERFECT LAYOUT */}
         <Route path="/" element={
           <div className="app">
             <RedirectOnRefresh />
@@ -112,144 +107,117 @@ export default function App() {
               </nav>
             </header>
 
-          <section className="hero">
-  <h1>{t("hero_title", "Online Video Downloader")}</h1>
-  <p>{t("hero_desc", "Download Instagram Reels/Posts & YouTube Shorts/Live/Long — fast, free, no login.")}</p>
+            <section className="hero">
+              <h1>{t("hero_title", "Online Video Downloader")}</h1>
+              <p>{t("hero_desc", "Download Instagram Reels/Posts & YouTube Shorts/Live/Long — fast, free, no login.")}</p>
 
-  {/* 1. MAIN TABS */}
-  <div className="tabs">
-    {TABS.map((tTab) => (
-      <button
-        key={tTab.id}
-        className={`tab ${platform === tTab.id ? "active" : ""}`}
-        onClick={() => setPlatform(tTab.id)}
-      >
-        {tTab.label}
-      </button>
-    ))}
-  </div>
+              {/* MAIN TABS */}
+              <div className="tabs">
+                {TABS.map((tTab) => (
+                  <button
+                    key={tTab.id}
+                    className={`tab ${platform === tTab.id ? "active" : ""}`}
+                    onClick={() => setPlatform(tTab.id)}
+                  >
+                    {tTab.label}
+                  </button>
+                ))}
+              </div>
 
-  {/* 2. SUBTABS + LINK PASTE + PREVIEW + InstagramInfo */}
-  {platform === "instagram" && (
-    <div>
-      {/* Instagram SUBTABS */}
-      <div className="subtabs">
-        {IG_TYPES.map((tObj) => (
-          <button
-            key={tObj.id}
-            className={`subtab ${igType === tObj.id ? "active" : ""}`}
-            onClick={() => setIgType(tObj.id)}
-          >
-            {tObj.label}
-          </button>
-        ))}
-      </div>
+              {/* INSTAGRAM SECTION */}
+              {platform === "instagram" && (
+                <div>
+                  {/* ✅ MOBILE PERFECT SUBTABS - Horizontal scroll */}
+                  <div className="subtabs instagram-subtabs">
+                    {IG_TYPES.map((tObj) => (
+                      <button
+                        key={tObj.id}
+                        className={`subtab ${igType === tObj.id ? "active" : ""}`}
+                        onClick={() => setIgType(tObj.id)}
+                      >
+                        {tObj.label}
+                      </button>
+                    ))}
+                  </div>
 
-      {/* 🔴 LINK PASTE + PREVIEW - EXACTLY HERE */}
-      <DownloaderForm
-        platform={platform}
-        igType={igType}
-        ytType={ytType}
-        setPreviewUrl={setPreviewUrl}
-        setPreviewFormat={setPreviewFormat}
-        setPreviewUsername={setPreviewUsername}
-      />
+                  {/* LINK PASTE + PREVIEW */}
+                  <DownloaderForm
+                    platform={platform}
+                    igType={igType}
+                    ytType={ytType}
+                    setPreviewUrl={setPreviewUrl}
+                    setPreviewFormat={setPreviewFormat}
+                    setPreviewUsername={setPreviewUsername}
+                  />
 
-      {previewUrl && (
-        <div className="preview-improved">
-          <div className="preview-header">
-            <h3>{t("preview_title", "Preview")}</h3>
-            <button 
-              className="clear-preview" 
-              onClick={() => {
-                setPreviewUrl("");
-                setPreviewFormat("");
-                setPreviewUsername("");
-              }}
-              aria-label="Clear preview"
-            >
-              ×
-            </button>
-          </div>
-          {platform === "instagram" && previewUsername && (
-            <p className="username">Posted by @{previewUsername}</p>
-          )}
-          <div className="video-container">
-            <video controls preload="metadata" width="100%">
-              <source src={previewUrl} type={`video/${previewFormat || "mp4"}`} />
-              {t("no_video_support", "Your browser does not support the video tag.")}
-            </video>
-          </div>
-        </div>
-      )}
+                  {previewUrl && (
+                    <div className="preview-improved">
+                      <div className="preview-header">
+                        <h3>{t("preview_title", "Preview")}</h3>
+                        <button className="clear-preview" onClick={clearPreview} aria-label="Clear preview">×</button>
+                      </div>
+                      {platform === "instagram" && previewUsername && (
+                        <p className="username">Posted by @{previewUsername}</p>
+                      )}
+                      <div className="video-container">
+                        <video controls preload="metadata" width="100%">
+                          <source src={previewUrl} type={`video/${previewFormat || "mp4"}`} />
+                          {t("no_video_support", "Your browser does not support the video tag.")}
+                        </video>
+                      </div>
+                    </div>
+                  )}
 
-      {/* InstagramInfo BELOW Preview */}
-      <InstagramInfo />
-    </div>
-  )}
+                  <InstagramInfo />
+                </div>
+              )}
 
-  {platform === "youtube" && (
-    <div>
-      {/* YouTube SUBTABS */}
-      <div className="subtabs">
-        {YT_TYPES.map((tObj) => (
-          <button
-            key={tObj.id}
-            className={`subtab ${ytType === tObj.id ? "active" : ""}`}
-            onClick={() => setYtType(tObj.id)}
-          >
-            {tObj.label}
-          </button>
-        ))}
-      </div>
+              {/* YOUTUBE SECTION */}
+              {platform === "youtube" && (
+                <div>
+                  {/* ✅ MOBILE PERFECT SUBTABS - Horizontal scroll */}
+                  <div className="subtabs youtube-subtabs">
+                    {YT_TYPES.map((tObj) => (
+                      <button
+                        key={tObj.id}
+                        className={`subtab ${ytType === tObj.id ? "active" : ""}`}
+                        onClick={() => setYtType(tObj.id)}
+                      >
+                        {tObj.label}
+                      </button>
+                    ))}
+                  </div>
 
-      {/* 🔴 LINK PASTE + PREVIEW - EXACTLY HERE */}
-      <DownloaderForm
-        platform={platform}
-        igType={igType}
-        ytType={ytType}
-        setPreviewUrl={setPreviewUrl}
-        setPreviewFormat={setPreviewFormat}
-        setPreviewUsername={setPreviewUsername}
-      />
+                  {/* LINK PASTE + PREVIEW */}
+                  <DownloaderForm
+                    platform={platform}
+                    igType={igType}
+                    ytType={ytType}
+                    setPreviewUrl={setPreviewUrl}
+                    setPreviewFormat={setPreviewFormat}
+                    setPreviewUsername={setPreviewUsername}
+                  />
 
-      {previewUrl && (
-        <div className="preview-improved">
-          <div className="preview-header">
-            <h3>{t("preview_title", "Preview")}</h3>
-            <button 
-              className="clear-preview" 
-              onClick={() => {
-                setPreviewUrl("");
-                setPreviewFormat("");
-                setPreviewUsername("");
-              }}
-              aria-label="Clear preview"
-            >
-              ×
-            </button>
-          </div>
-          {platform === "instagram" && previewUsername && (
-            <p className="username">Posted by @{previewUsername}</p>
-          )}
-          <div className="video-container">
-            <video controls preload="metadata" width="100%">
-              <source src={previewUrl} type={`video/${previewFormat || "mp4"}`} />
-              {t("no_video_support", "Your browser does not support the video tag.")}
-            </video>
-          </div>
-        </div>
-      )}
+                  {previewUrl && (
+                    <div className="preview-improved">
+                      <div className="preview-header">
+                        <h3>{t("preview_title", "Preview")}</h3>
+                        <button className="clear-preview" onClick={clearPreview} aria-label="Clear preview">×</button>
+                      </div>
+                      <div className="video-container">
+                        <video controls preload="metadata" width="100%">
+                          <source src={previewUrl} type={`video/${previewFormat || "mp4"}`} />
+                          {t("no_video_support", "Your browser does not support the video tag.")}
+                        </video>
+                      </div>
+                    </div>
+                  )}
 
-      {/* YouTubeInfo BELOW Preview */}
-      <YouTubeInfo />
-    </div>
-  )}
-</section>
+                  <YouTubeInfo />
+                </div>
+              )}
+            </section>
 
-
-
-            {/* ✅ #features scroll target */}
             <section id="features" className="features">
               <h2>{t("features_title", "Everything in one place")}</h2>
               <div className="feature-grid">
@@ -268,7 +236,6 @@ export default function App() {
               </div>
             </section>
 
-            {/* ✅ #faq scroll target */}
             <section id="faq" className="faq-section">
               <FAQ />
             </section>
@@ -284,7 +251,6 @@ export default function App() {
           </div>
         } />
 
-        {/* ✅ ROUTE PAGES */}
         <Route path="/features" element={<><RedirectOnRefresh /><Features /></>} />
         <Route path="/faq" element={<><RedirectOnRefresh /><FAQ /></>} />
         <Route path="/contact" element={<><RedirectOnRefresh /><Contact /></>} />
