@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet";
 
@@ -30,17 +30,14 @@ const YT_TYPES = [
   { id: "long", label: "Long Video" }
 ];
 
-// ✅ REFRESH-TO-HOME GUARD (SIMPLEST METHOD)
-function RefreshGuard() {
-  const location = useLocation();
-  
+// 🔥 GLOBAL REFRESH-TO-HOME (WORKS ON ALL ROUTES + HASH)
+const RefreshGuard = () => {
   useEffect(() => {
-    // On ANY page refresh → Go to home
-    window.location.href = "https://instantsaver.in/";
+    // IMMEDIATE redirect to home on ANY page refresh
+    window.location.replace("https://instantsaver.in/");
   }, []);
-
-  return null;
-}
+  return <div style={{ display: "none" }} />;
+};
 
 export default function App() {
   const { t, i18n } = useTranslation();
@@ -63,7 +60,7 @@ export default function App() {
       </Helmet>
 
       <Routes>
-        {/* ✅ HOME PAGE - Hash links (#features, #faq) */}
+        {/* ✅ HOME PAGE - Hash links (#features, #faq, #contact) */}
         <Route path="/" element={
           <div className="app">
             <header className="nav">
@@ -73,11 +70,10 @@ export default function App() {
               </div>
 
               <nav className="links">
-                {/* ✅ HASH LINKS - Work perfectly */}
+                {/* ✅ HASH LINKS - Scroll on homepage */}
                 <a href="#features">{t("nav_features", "Features")}</a>
                 <a href="#faq">{t("nav_faq", "FAQ")}</a>
-                {/* ✅ CLEAN URL - Indexed page */}
-                <a href="/contact">{t("nav_contact", "Contact")}</a>
+                <a href="#contact">{t("nav_contact", "Contact")}</a>
                 
                 <select
                   aria-label="Language"
@@ -160,7 +156,7 @@ export default function App() {
               )}
             </section>
 
-            {/* ✅ FEATURES SECTION - #features */}
+            {/* 🔥 FEATURES - #features HASH */}
             <section id="features" className="features">
               <h2>{t("features_title", "Everything in one place")}</h2>
               <div className="feature-grid">
@@ -179,9 +175,14 @@ export default function App() {
               </div>
             </section>
 
-            {/* ✅ FAQ SECTION - #faq */}
+            {/* 🔥 FAQ Homepage - #faq HASH + Full page */}
             <section id="faq" className="faq-section">
               <FAQ />
+            </section>
+
+            {/* 🔥 CONTACT Homepage - #contact HASH */}
+            <section id="contact" className="contact-section">
+              <Contact />
             </section>
 
             <footer className="footer">
@@ -195,40 +196,17 @@ export default function App() {
           </div>
         } />
 
-        {/* ✅ FAQ PAGE - /faq (Indexed) */}
-        <Route path="/faq" element={<><RefreshGuard /><FAQ /></>} />
+        {/* 🔥 CLEAN ROUTES - Sitemap + Refresh-to-Home */}
+        <Route path="/features" element={<RefreshGuard />} />
+        <Route path="/faq" element={<RefreshGuard />} />
+        <Route path="/contact" element={<RefreshGuard />} />
+        <Route path="/#features" element={<RefreshGuard />} />
+        <Route path="/#faq" element={<RefreshGuard />} />
+        <Route path="/#contact" element={<RefreshGuard />} />
 
-        {/* ✅ CONTACT PAGE - /contact (Indexed) */}
-        <Route path="/contact" element={<><RefreshGuard /><Contact /></>} />
-
-        {/* ✅ FEATURES PAGE - /features (Indexed) */}
-        <Route path="/features" element={
-          <div className="app">
-            <RefreshGuard />
-            <section id="features" className="features">
-              <h2>{t("features_title", "Everything in one place")}</h2>
-              <div className="feature-grid">
-                <div className="card">
-                  <h3>{t("features_fast_title", "Fast & Smart")}</h3>
-                  <p>{t("features_fast_desc", "High-speed processing backed by optimized pipelines to preview & download instantly.")}</p>
-                </div>
-                <div className="card">
-                  <h3>{t("features_free_title", "Free to Use")}</h3>
-                  <p>{t("features_free_desc", "No signup. No paywall. Just paste your link, preview, and download.")}</p>
-                </div>
-                <div className="card">
-                  <h3>{t("features_unlimited_title", "Unlimited")}</h3>
-                  <p>{t("features_unlimited_desc", "Use it as much as you like. No hidden limits.")}</p>
-                </div>
-              </div>
-            </section>
-          </div>
-        } />
-
-        {/* ✅ CATCH-ALL → Home */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* 🔥 CATCH-ALL → Home */}
+        <Route path="*" element={<RefreshGuard />} />
       </Routes>
     </Router>
   );
 }
-
