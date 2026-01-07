@@ -66,14 +66,15 @@ function Home() {
         </div>
 
         <nav className="links">
-          <a href="#features">Features</a>
-          <Link to="/faq">FAQ</Link>
-          <Link to="/contact">Contact</Link>
+          <a href="#features">{t("nav_features", "Features")}</a>
+          <Link to="/faq">{t("nav_faq", "FAQ")}</Link>
+          <Link to="/contact">{t("nav_contact", "Contact")}</Link>
 
           <select
+            aria-label="Language"
             value={i18n.language}
             onChange={(e) => i18n.changeLanguage(e.target.value)}
-            style={{ marginLeft: 12 }}
+            style={{ marginLeft: 12, padding: 6 }}
           >
             <option value="en">English</option>
             <option value="hi">हिंदी</option>
@@ -83,10 +84,12 @@ function Home() {
 
       {/* ================= HERO ================= */}
       <section className="hero">
-        <h1>Online Video Downloader</h1>
+        <h1>{t("hero_title", "Online Video Downloader")}</h1>
         <p>
-          Download Instagram Reels/Posts & YouTube Shorts/Live/Long — fast, free,
-          no login.
+          {t(
+            "hero_desc",
+            "Download Instagram Reels/Posts & YouTube Shorts/Live/Long — fast, free, no login."
+          )}
         </p>
 
         <div className="tabs">
@@ -142,7 +145,7 @@ function Home() {
 
         {previewUrl && (
           <div className="preview">
-            <h3>Preview</h3>
+            <h3>{t("preview_title", "Preview")}</h3>
             <video controls width="100%">
               <source
                 src={previewUrl}
@@ -153,55 +156,51 @@ function Home() {
         )}
       </section>
 
-      {/* ================= FEATURES ================= */} <section id="features" className="features"> 
-        <h2>{t("features_title", "Everything in one place")}</h2> 
-        <div className="feature-grid"> <div className="card"> 
-        <h3>Fast & Smart</h3> <p>Instant preview & download with optimized pipelines.</p> 
-        </div> <div className="card"> <h3>Free to Use</h3> 
-        <p>No login. No watermark. No limits.</p> </div> 
-        <div className="card"> <h3>Unlimited</h3> 
-        <p>Download as much as you want.</p> 
-        </div> </div> </section> 
-        
-      {/* ================= FOOTER ================= */} 
-        <footer className="footer"> <div className="footer-brand"> 
-        <img src="/logo.png" className="logo small" alt={t("app_title", "InstantSaver")} /> 
-        <strong>{t("app_title", "InstantSaver")}</strong> </div> 
-        <p> © {new Date().getFullYear()} InstantSaver. All rights reserved. </p> 
-        <p className="disclaimer"> Downloads are fetched from public CDNs. Please respect platform terms. </p> 
-        </footer> </div> } />
+      {/* ================= FEATURES (RESTORED) ================= */}
+      <section id="features" className="features">
+        <h2>{t("features_title", "Everything in one place")}</h2>
+        <div className="feature-grid">
+          <div className="card">
+            <h3>Fast & Smart</h3>
+            <p>Instant preview & download with optimized pipelines.</p>
+          </div>
+          <div className="card">
+            <h3>Free to Use</h3>
+            <p>No login. No watermark. No limits.</p>
+          </div>
+          <div className="card">
+            <h3>Unlimited</h3>
+            <p>Download as much as you want.</p>
+          </div>
+        </div>
+      </section>
 
-/* ===================== APP ROUTER ===================== */
+      {/* ================= FOOTER (RESTORED) ================= */}
+      <footer className="footer">
+        <div className="footer-brand">
+          <img src="/logo.png" className="logo small" alt="InstantSaver" />
+          <strong>InstantSaver</strong>
+        </div>
+
+        <p>© {new Date().getFullYear()} InstantSaver. All rights reserved.</p>
+
+        <p className="disclaimer">
+          Downloads are fetched from public CDNs. Please respect platform terms.
+        </p>
+      </footer>
+    </div>
+  );
+}
+
+/* ===================== ROUTER ===================== */
 
 export default function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route
-          path="/faq"
-          element={
-            <>
-              <Helmet>
-                <title>FAQ – InstantSaver</title>
-                <link rel="canonical" href="https://instantsaver.in/faq" />
-              </Helmet>
-              <FAQ />
-            </>
-          }
-        />
-        <Route
-          path="/contact"
-          element={
-            <>
-              <Helmet>
-                <title>Contact – InstantSaver</title>
-                <link rel="canonical" href="https://instantsaver.in/contact" />
-              </Helmet>
-              <Contact />
-            </>
-          }
-        />
+        <Route path="/faq" element={<FAQ />} />
+        <Route path="/contact" element={<Contact />} />
       </Routes>
     </Router>
   );
