@@ -30,13 +30,18 @@ const YT_TYPES = [
   { id: "long", label: "Long Video" }
 ];
 
-// 🔥 GLOBAL REFRESH-TO-HOME (WORKS ON ALL ROUTES + HASH)
-const RefreshGuard = () => {
+// 🔥 REFRESH DETECTOR - Only triggers on ACTUAL page refresh
+const RefreshGuard = ({ pathname }) => {
   useEffect(() => {
-    // IMMEDIATE redirect to home on ANY page refresh
-    window.location.replace("https://instantsaver.in/");
-  }, []);
-  return <div style={{ display: "none" }} />;
+    // Check if this is a page refresh (not programmatic navigation)
+    const isRefresh = performance.navigation.type === 1 || performance.getEntriesByType("navigation")[0]?.type === "reload";
+    
+    if (isRefresh && pathname !== "/") {
+      window.location.replace("https://instantsaver.in/");
+    }
+  }, [pathname]);
+
+  return null;
 };
 
 export default function App() {
@@ -60,7 +65,7 @@ export default function App() {
       </Helmet>
 
       <Routes>
-        {/* ✅ HOME PAGE - Hash links (#features, #faq, #contact) */}
+        {/* ✅ HOME PAGE - Hash scroll works */}
         <Route path="/" element={
           <div className="app">
             <header className="nav">
@@ -70,10 +75,9 @@ export default function App() {
               </div>
 
               <nav className="links">
-                {/* ✅ HASH LINKS - Scroll on homepage */}
                 <a href="#features">{t("nav_features", "Features")}</a>
                 <a href="#faq">{t("nav_faq", "FAQ")}</a>
-                <a href="#contact">{t("nav_contact", "Contact")}</a>
+                <a href="/contact">{t("nav_contact", "Contact")}</a>
                 
                 <select
                   aria-label="Language"
@@ -156,7 +160,7 @@ export default function App() {
               )}
             </section>
 
-            {/* 🔥 FEATURES - #features HASH */}
+            {/* 🔥 FEATURES - #features */}
             <section id="features" className="features">
               <h2>{t("features_title", "Everything in one place")}</h2>
               <div className="feature-grid">
@@ -175,14 +179,9 @@ export default function App() {
               </div>
             </section>
 
-            {/* 🔥 FAQ Homepage - #faq HASH + Full page */}
+            {/* 🔥 FAQ Homepage - #faq */}
             <section id="faq" className="faq-section">
               <FAQ />
-            </section>
-
-            {/* 🔥 CONTACT Homepage - #contact HASH */}
-            <section id="contact" className="contact-section">
-              <Contact />
             </section>
 
             <footer className="footer">
@@ -196,16 +195,68 @@ export default function App() {
           </div>
         } />
 
-        {/* 🔥 CLEAN ROUTES - Sitemap + Refresh-to-Home */}
-        <Route path="/features" element={<RefreshGuard />} />
-        <Route path="/faq" element={<RefreshGuard />} />
-        <Route path="/contact" element={<RefreshGuard />} />
-        <Route path="/#features" element={<RefreshGuard />} />
-        <Route path="/#faq" element={<RefreshGuard />} />
-        <Route path="/#contact" element={<RefreshGuard />} />
+        {/* 🔥 FEATURES PAGE - Show normally, refresh → home */}
+        <Route 
+          path="/features" 
+          element={
+            <>
+              <RefreshGuard pathname="/features" />
+              <div className="app">
+                <header className="nav">
+                  <div className="brand">
+                    <img src="/logo.png" className="logo" alt="InstantSaver" />
+                    <span>InstantSaver</span>
+                  </div>
+                  <nav className="links">
+                    <a href="/">← Home</a>
+                  </nav>
+                </header>
+                <section id="features" className="features">
+                  <h2>Features</h2>
+                  <div className="feature-grid">
+                    <div className="card">
+                      <h3>Fast & Smart</h3>
+                      <p>High-speed processing backed by optimized pipelines to preview & download instantly.</p>
+                    </div>
+                    <div className="card">
+                      <h3>Free to Use</h3>
+                      <p>No signup. No paywall. Just paste your link, preview, and download.</p>
+                    </div>
+                    <div className="card">
+                      <h3>Unlimited</h3>
+                      <p>Use it as much as you like. No hidden limits.</p>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </>
+          } 
+        />
+
+        {/* 🔥 FAQ PAGE - Show normally, refresh → home */}
+        <Route 
+          path="/faq" 
+          element={
+            <>
+              <RefreshGuard pathname="/faq" />
+              <FAQ />
+            </>
+          } 
+        />
+
+        {/* 🔥 CONTACT PAGE - Show normally, refresh → home */}
+        <Route 
+          path="/contact" 
+          element={
+            <>
+              <RefreshGuard pathname="/contact" />
+              <Contact />
+            </>
+          } 
+        />
 
         {/* 🔥 CATCH-ALL → Home */}
-        <Route path="*" element={<RefreshGuard />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
