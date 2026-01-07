@@ -62,9 +62,9 @@ body {
   color: var(--muted);
 }
 
-/* MAIN TABS */
+/* Tabs */
 .tabs { 
-  display: flex !important;
+  display: flex; 
   gap: 8px; 
   margin: 24px 0 16px;
   justify-content: center;
@@ -85,53 +85,38 @@ body {
   background: var(--brand);
 }
 
-/* 🎯 MOBILE PERFECT SUBTABS - HORIZONTAL LINE ONLY */
+/* ✅ OLD MOBILE PERFECT SUBTABS */
 .subtabs {
-  display: flex !important;
-  flex-direction: row !important;
-  flex-wrap: nowrap !important;
+  display: flex;
   gap: 8px;
+  flex-wrap: wrap;
   justify-content: center;
-  margin: 16px 0 28px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  -webkit-overflow-scrolling: touch;
-  padding: 12px 8px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  margin-bottom: 24px;
 }
-
-.subtabs::-webkit-scrollbar {
-  display: none;
-}
-
 .subtab {
-  flex: 0 0 auto !important;
-  white-space: nowrap !important;
-  min-width: 110px;
-  padding: 10px 14px !important;
+  padding: 10px 14px;
   border: 1px solid #e5e7eb;
-  background: var(--white);
+  background: #fff;
   border-radius: 12px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
-  flex-shrink: 0 !important;
+  white-space: nowrap;
 }
 .subtab.active { 
-  border-color: var(--primary) !important; 
-  color: #fff !important; 
-  background: var(--primary) !important; 
+  border-color: var(--primary); 
+  color: #fff; 
+  background: var(--primary); 
 }
 
-/* PERFECT PREVIEW */
+/* ✨ NEW GORGEOUS PREVIEW */
 .preview-improved {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 20px;
   padding: 24px;
   margin: 24px auto;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
   max-width: 960px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
   position: relative;
   overflow: hidden;
 }
@@ -143,7 +128,7 @@ body {
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+  background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1);
   background-size: 300% 100%;
   animation: gradientShift 3s ease infinite;
 }
@@ -232,6 +217,13 @@ body {
   transform: translateY(-4px);
 }
 
+/* FAQ */
+.faq-section {
+  max-width: 900px;
+  margin: 64px auto;
+  padding: 0 16px;
+}
+
 /* Footer */
 .footer {
   text-align: center;
@@ -279,79 +271,9 @@ body {
 }
 
 /* Accessibility */
-.input-box:focus, .btn:focus, .tab:focus, .subtab:focus {
+.input-box:focus, .btn:focus, .tab:focus, .subtab:focus, .clear-preview:focus {
   outline: 3px solid rgba(99,102,241,0.3);
   outline-offset: 2px;
 }
 
-
-/* 🔥 MOBILE PERFECT - Instagram Style 2x3 Grid */
-@media (max-width: 768px) {
-  .hero { padding: 20px 16px !important; }
-  .hero h1 { font-size: 28px !important; line-height: 1.2 !important; }
-  
-  /* Main tabs */
-  .tabs { 
-    gap: 12px !important;
-    padding: 0 8px !important;
-  }
-  .tab { 
-    padding: 14px 20px !important; 
-    font-size: 16px !important; 
-    flex: 1 !important;
-  }
-
-  /* 🎯 MOBILE SUBTABS - PERFECT 2x3 GRID */
-  .subtabs {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important; /* 2 columns */
-    grid-template-rows: auto auto !important;   /* 2 rows */
-    gap: 12px !important;
-    max-width: 340px !important;
-    margin: 24px auto 32px !important;
-    padding: 0 12px !important;
-  }
-
-  /* Reorder for perfect layout */
-  .subtab:nth-child(1) { grid-row: 1; grid-column: 1; }  /* All - Row1 Col1 */
-  .subtab:nth-child(2) { grid-row: 1; grid-column: 2; }  /* Reels - Row1 Col2 */
-  .subtab:nth-child(3) { grid-row: 2; grid-column: 1; }  /* Post - Row2 Col1 */
-  .subtab:nth-child(4) { grid-row: 2; grid-column: 2; }  /* IGTV - Row2 Col2 */
-  .subtab:nth-child(5) { grid-row: 3; grid-column: 1 / span 2; } /* Carousel - Full width */
-
-  .subtab {
-    padding: 14px 16px !important;
-    font-size: 14px !important;
-    font-weight: 600 !important;
-    border: 2px solid #e5e7eb !important;
-    border-radius: 16px !important;
-    min-height: 52px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
-
-  .subtab.active {
-    border-color: #6366f1 !important;
-    background: #6366f1 !important;
-    color: white !important;
-    font-size: 15px !important;
-  }
-
-  .preview-improved { margin: 24px 12px !important; padding: 24px !important; }
-}
-
-/* Small phones */
-@media (max-width: 400px) {
-  .subtabs {
-    max-width: 300px !important;
-    gap: 10px !important;
-  }
-  
-  .subtab {
-    padding: 12px 14px !important;
-    font-size: 13px !important;
-    min-height: 48px !important;
-  }
-}
-
+/* ✅ NO MOBILE MEDIA QUERIES NEEDED - Old CSS handles perfectly! */
