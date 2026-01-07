@@ -13,7 +13,18 @@ export default function FAQ() {
   ];
 
   return (
-    <section id="faq" className="faq" aria-labelledby="faq-heading">
+    <div className="app"> {/* ✅ Added app wrapper for consistent styling */}
+      {/* ✅ HOME BUTTON HEADER - Same as Features */}
+      <header className="nav">
+        <div className="brand">
+          <img src="/logo.png" className="logo" alt="InstantSaver" />
+          <span>InstantSaver</span>
+        </div>
+        <nav className="links">
+          <a href="/">← Home</a>
+        </nav>
+      </header>
+
       <Helmet>
         {/* ✅ FIXED: NO "FAQ" - Perfect SEO title */}
         <title>InstantSaver™ – Instagram & YouTube Video Downloader (Reels, Posts, Shorts)</title>
@@ -45,7 +56,7 @@ export default function FAQ() {
             "@type": "Organization",
             "name": "InstantSaver",
             "url": "https://instantsaver.in/",
-            "logo": "https://instantsaver.in/logo.svg",
+            "logo": "https://instantsaver.in/logo.png",  // ✅ PNG fixed
             "description": "Free Instagram Reels & YouTube video downloader"
           })}
         </script>
@@ -120,50 +131,52 @@ export default function FAQ() {
         <link rel="alternate" hrefLang="x-default" href="https://instantsaver.in/" />
       </Helmet>
 
-      {/* ✅ FIXED H1: NO "FAQ" */}
-      <h1>InstantSaver™ – Download Videos Instantly</h1>
-      <p className="faq-intro">
-        Everything you need to know about downloading Instagram Reels, Posts & YouTube videos.
-      </p>
+      <section className="faq" aria-labelledby="faq-heading">
+        {/* ✅ FIXED H1: NO "FAQ" */}
+        <h1>InstantSaver™ – Download Videos Instantly</h1>
+        <p className="faq-intro">
+          Everything you need to know about downloading Instagram Reels, Posts & YouTube videos.
+        </p>
 
-      {/* Top ad/banner placeholder */}
-      <div
-        className="ad-banner"
-        role="complementary"
-        aria-label={t("ad_banner_text")}
-      >
-        <div className="ad-inner">
-          <strong>{t("ad_banner_text")}</strong>
-          <div className="ad-placeholder">Your Ad Here</div>
+        {/* Top ad/banner placeholder */}
+        <div
+          className="ad-banner"
+          role="complementary"
+          aria-label={t("ad_banner_text")}
+        >
+          <div className="ad-inner">
+            <strong>{t("ad_banner_text")}</strong>
+            <div className="ad-placeholder">Your Ad Here</div>
+          </div>
         </div>
-      </div>
 
-      <div className="faq-grid">
-        <div className="faq-item">
-          <h3>{t("faq_q1_title")}</h3>
-          <p>{t("faq_q1_text")}</p>
+        <div className="faq-grid">
+          <div className="faq-item">
+            <h3>{t("faq_q1_title")}</h3>
+            <p>{t("faq_q1_text")}</p>
+          </div>
+          <div className="faq-item">
+            <h3>{t("faq_q2_title")}</h3>
+            <p>{t("faq_q2_text")}</p>
+          </div>
+          <div className="faq-item">
+            <h3>{t("faq_q3_title")}</h3>
+            <p>{t("faq_q3_text")}</p>
+          </div>
+          <div className="faq-item">
+            <h3>{t("faq_q4_title")}</h3>
+            <p>{t("faq_q4_text")}</p>
+          </div>
+          <div className="faq-item">
+            <h3>{t("faq_q5_title")}</h3>
+            <p>{t("faq_q5_text")}</p>
+          </div>
+          <div className="faq-item">
+            <h3>{t("faq_q6_title")}</h3>
+            <p>{t("faq_q6_text")}</p>
+          </div>
         </div>
-        <div className="faq-item">
-          <h3>{t("faq_q2_title")}</h3>
-          <p>{t("faq_q2_text")}</p>
-        </div>
-        <div className="faq-item">
-          <h3>{t("faq_q3_title")}</h3>
-          <p>{t("faq_q3_text")}</p>
-        </div>
-        <div className="faq-item">
-          <h3>{t("faq_q4_title")}</h3>
-          <p>{t("faq_q4_text")}</p>
-        </div>
-        <div className="faq-item">
-          <h3>{t("faq_q5_title")}</h3>
-          <p>{t("faq_q5_text")}</p>
-        </div>
-        <div className="faq-item">
-          <h3>{t("faq_q6_title")}</h3>
-          <p>{t("faq_q6_text")}</p>
-        </div>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }
