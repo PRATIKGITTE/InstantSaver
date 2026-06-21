@@ -96,8 +96,35 @@ app.get("/health", (req, res) => {
 });
 
 // ---------- Helpers ----------
+
+// In-memory metadata cache — avoids hammering Instagram for repeated previews of
+// the same URL. Entries expire after 5 minutes (og: CDN tokens last ~1 hour).
+const _metaCache = new Map();
+const META_CACHE_TTL = 5 * 60 * 1000; // 5 min
+
+function metaCacheGet(key) {
+  const entry = _metaCache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) { _metaCache.delete(key); return null; }
+  return entry.data;
+}
+
+function metaCacheSet(key, data) {
+  if (_metaCache.size > 500) {
+    const now = Date.now();
+    for (const [k, v] of _metaCache) { if (now > v.expiresAt) _metaCache.delete(k); }
+  }
+  _metaCache.set(key, { data, expiresAt: Date.now() + META_CACHE_TTL });
+}
+
+// Validate hostname is actually instagram.com to prevent SSRF via loose regex
 function isInstagramUrl(url) {
-  return /(?:https?:\/\/)?(www\.)?instagram\.com\//i.test(url || "");
+  try {
+    const u = new URL(url.trim());
+    return /^(www\.)?instagram\.com$/i.test(u.hostname);
+  } catch {
+    return false;
+  }
 }
 
 // Extract username from URL paths like /cristiano/reel/{id}/, /cristiano/p/{id}/, /stories/cristiano/{id}/
@@ -183,7 +210,10 @@ function ensureYouTubeCookies() {
 }
 
 // ---------- Instagram Profile / DP scraper ----------
-function fetchInstagramDP(profileUrl, res) {
+// Uses facebookexternalhit UA (browser UA returns a blank JS shell with no og: tags).
+// Follows up to 2 redirects (some profiles redirect to canonical username).
+function fetchInstagramDP(profileUrl, res, redirectCount) {
+  redirectCount = redirectCount || 0;
   const https = require("https");
   let username = "";
   try {
@@ -192,6 +222,7 @@ function fetchInstagramDP(profileUrl, res) {
   } catch {
     return res.status(400).json({ error: "Invalid profile URL" });
   }
+  if (!username) return res.status(400).json({ error: "Could not extract username from URL" });
 
   const options = {
     hostname: "www.instagram.com",
@@ -199,8 +230,6 @@ function fetchInstagramDP(profileUrl, res) {
     method: "GET",
     timeout: 15000,
     headers: {
-      // facebookexternalhit UA causes Instagram to render the og: meta tags server-side.
-      // A standard browser UA returns a blank JS shell with no og:image at all.
       "User-Agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
       "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       "Accept-Language": "en-US,en;q=0.9",
@@ -209,40 +238,58 @@ function fetchInstagramDP(profileUrl, res) {
   };
 
   const req = https.request(options, (response) => {
-    // Instagram often redirects profile pages — follow once
-    if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
-      return res.status(404).json({ error: "Profile not found or redirected. Make sure the account is public." });
+    // Follow redirects (renamed accounts etc.)
+    if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location && redirectCount < 2) {
+      response.resume();
+      try {
+        const loc = new URL(response.headers.location, "https://www.instagram.com");
+        return fetchInstagramDP(loc.href, res, redirectCount + 1);
+      } catch {
+        return res.status(404).json({ error: "Profile not found." });
+      }
     }
+    if (response.statusCode === 404) {
+      response.resume();
+      return res.status(404).json({ error: "Instagram profile not found. Check the username." });
+    }
+    if (response.statusCode >= 400) {
+      response.resume();
+      return res.status(404).json({ error: "Could not access this profile. It may be private or unavailable." });
+    }
+
     let html = "";
     response.setEncoding("utf8");
-    // Stop accumulating past 2MB but keep draining the stream so 'end' still fires.
-    // (Destroying the request here would abort the response before 'end' and hang forever.)
     response.on("data", (chunk) => { if (html.length < 2000000) html += chunk; });
     response.on("end", () => {
-      const ogImage = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i)
-                  || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/i);
-      const ogTitle = html.match(/<meta[^>]+property="og:title"[^>]+content="([^"]+)"/i)
-                   || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:title"/i);
+      const pick = (patterns) => {
+        for (const p of patterns) {
+          const m = html.match(p);
+          if (m && m[1]) return m[1].replace(/&amp;/g, "&");
+        }
+        return null;
+      };
+      const dpUrl = pick([/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i, /<meta[^>]+content="([^"]+)"[^>]+property="og:image"/i]);
+      const rawTitle = pick([/<meta[^>]+property="og:title"[^>]+content="([^"]+)"/i, /<meta[^>]+content="([^"]+)"[^>]+property="og:title"/i]);
+      const ogDesc = pick([/<meta[^>]+property="og:description"[^>]+content="([^"]+)"/i, /<meta[^>]+content="([^"]+)"[^>]+property="og:description"/i]);
 
-      if (ogImage && ogImage[1]) {
-        const dpUrl = ogImage[1].replace(/&amp;/g, "&");
-        const rawTitle = ogTitle ? ogTitle[1].replace(/&amp;/g, "&") : username;
-        const displayName = rawTitle.replace(/\s*\(@[^)]+\).*$/, "").trim();
+      if (dpUrl) {
+        const displayName = rawTitle ? rawTitle.replace(/\s*\(@[^)]+\).*$/, "").trim() : username;
         return res.json({
           type: "profile",
           username,
           display_name: displayName || username,
+          bio: ogDesc || null,
           preview_url: dpUrl,
           can_preview: true,
           download_url: `/api/instagram/download-dp?url=${encodeURIComponent(dpUrl)}&username=${encodeURIComponent(username)}`
         });
       }
-      return res.status(404).json({ error: "Profile picture not found. The account may be private or Instagram is blocking the request." });
+      return res.status(404).json({ error: "Profile picture not found. The account may be private or temporarily unavailable." });
     });
   });
 
-  req.on("timeout", () => { req.destroy(); res.status(504).json({ error: "Profile fetch timed out. Try again." }); });
-  req.on("error", () => res.status(500).json({ error: "Failed to fetch Instagram profile. Try again." }));
+  req.on("timeout", () => { req.destroy(); if (!res.headersSent) res.status(504).json({ error: "Profile fetch timed out. Try again." }); });
+  req.on("error", () => { if (!res.headersSent) res.status(500).json({ error: "Failed to connect to Instagram. Try again." }); });
   req.end();
 }
 
@@ -326,34 +373,34 @@ function fetchOgSingle(pathname, search, redirectCount) {
   });
 }
 
+// CDN path extractor for dedup
+function cdnPath(url) {
+  try { return new URL(url).pathname; } catch { return url; }
+}
+
 // Scrape an Instagram post/reel/story via og: tags.
-// For /p/ carousel posts, iterates ?img_index=1,2,... to get ALL individual items.
-async function scrapeInstagramPost(cleanUrl, res) {
+// For /p/ carousel posts, fetches img_index=1..N in PARALLEL batches for speed.
+async function scrapeInstagramPost(cleanUrl) {
   let parsedUrl;
-  try { parsedUrl = new URL(cleanUrl.trim()); } catch { return res.status(400).json({ error: "Invalid URL" }); }
+  try { parsedUrl = new URL(cleanUrl.trim()); } catch { return null; }
 
   let pathname = parsedUrl.pathname;
   const isPostUrl = /\/p\/[^/]+/.test(pathname);
 
-  // Fetch first item — always use img_index=1 so carousels start correctly
+  // Fetch img_index=1 (posts) or no index (reels/stories)
   const first = await fetchOgSingle(pathname, isPostUrl ? "?img_index=1" : "");
-  if (!first || (!first.image && !first.video)) {
-    return res.status(404).json({
-      error: "Post not found or private. Make sure the account is public and the link is correct."
-    });
-  }
+  if (!first || (!first.image && !first.video)) return null;
 
-  // Instagram may redirect tagged/collab posts to the canonical owner's URL —
-  // use that path for the username and any further img_index requests.
+  // Follow canonical redirect (collab/tagged posts redirect to the owner's URL)
   if (first.finalPathname && first.finalPathname !== pathname) pathname = first.finalPathname;
   const urlUsername = extractUsernameFromUrl(`https://www.instagram.com${pathname}`);
 
-  // For non-/p/ URLs (reels, stories) — single item response
+  // Non-/p/ URLs (reels, stories) — single item
   if (!isPostUrl) {
     const mediaUrl = first.video || first.image;
-    return res.json({
+    return {
       type: first.video ? "video" : "image",
-      can_preview: !!first.image,
+      can_preview: !!(first.image),
       preview_url: first.image || null,
       download_url: `/api/instagram/download-proxy?url=${encodeURIComponent(mediaUrl)}&type=${first.video ? "video" : "image"}`,
       username: urlUsername,
@@ -361,24 +408,19 @@ async function scrapeInstagramPost(cleanUrl, res) {
       caption: first.desc || "",
       thumbnail: first.image || null,
       scraped: true
-    });
+    };
   }
 
-  // For /p/ posts: detect carousel by checking if img_index=2 gives a DIFFERENT image.
-  // Compare by path only — CDN URLs carry random per-request tokens in the query
-  // string, so the same image would otherwise always look "different".
+  // Fetch img_index=2 in PARALLEL with first already done to check for carousel.
+  // CDN URLs for the same underlying image have the same path but different query tokens.
   const second = await fetchOgSingle(pathname, "?img_index=2");
-  const samePath = (a, b) => {
-    try { return new URL(a).pathname === new URL(b).pathname; } catch { return a === b; }
-  };
-  const isCarousel = !!(second && second.image && !samePath(second.image, first.image));
+  const isCarousel = !!(second && second.image && cdnPath(second.image) !== cdnPath(first.image));
 
   if (!isCarousel) {
-    // Single photo or video post
     const mediaUrl = first.video || first.image;
-    return res.json({
+    return {
       type: first.video ? "video" : "image",
-      can_preview: !!first.image,
+      can_preview: !!(first.image),
       preview_url: first.image || null,
       download_url: `/api/instagram/download-proxy?url=${encodeURIComponent(mediaUrl)}&type=${first.video ? "video" : "image"}`,
       username: urlUsername,
@@ -386,21 +428,18 @@ async function scrapeInstagramPost(cleanUrl, res) {
       caption: first.desc || "",
       thumbnail: first.image || null,
       scraped: true
-    });
+    };
   }
 
-  // CAROUSEL: iterate img_index=1,2,...,20 to collect all unique items
+  // CAROUSEL: fetch remaining items in parallel batches of 4 for speed
   const items = [];
-  const seenKeys = new Set();
+  const seenPaths = new Set();
 
   const pushItem = (og, index) => {
     if (!og || !og.image) return false;
-    // CDN URLs for the same image share the same path prefix before the query params
-    // Use the path part as a de-dup key so minor query differences don't fool us
-    let key = og.image;
-    try { key = new URL(og.image).pathname; } catch {}
-    if (seenKeys.has(key)) return false; // repeated image = end of carousel
-    seenKeys.add(key);
+    const key = cdnPath(og.image);
+    if (seenPaths.has(key)) return false;
+    seenPaths.add(key);
     const mediaUrl = og.video || og.image;
     items.push({
       index,
@@ -415,13 +454,22 @@ async function scrapeInstagramPost(cleanUrl, res) {
   pushItem(first, 1);
   pushItem(second, 2);
 
-  for (let i = 3; i <= 20; i++) {
-    const og = await fetchOgSingle(pathname, `?img_index=${i}`);
-    if (!og || !og.image) break;
-    if (!pushItem(og, i)) break; // repeated image means we've gone past the last item
+  // Batch-fetch indices 3–20 in groups of 4 to avoid hammering Instagram
+  let done = false;
+  for (let batchStart = 3; batchStart <= 20 && !done; batchStart += 4) {
+    const indices = [];
+    for (let i = batchStart; i < batchStart + 4 && i <= 20; i++) indices.push(i);
+    const results = await Promise.all(
+      indices.map((i) => fetchOgSingle(pathname, `?img_index=${i}`))
+    );
+    for (let j = 0; j < results.length; j++) {
+      const og = results[j];
+      if (!og || !og.image) { done = true; break; }
+      if (!pushItem(og, indices[j])) { done = true; break; }
+    }
   }
 
-  return res.json({
+  return {
     type: "carousel",
     items,
     item_count: items.length,
@@ -429,7 +477,23 @@ async function scrapeInstagramPost(cleanUrl, res) {
     title: first.title || "Instagram carousel",
     caption: first.desc || "",
     scraped: true
-  });
+  };
+}
+
+// Wrapper: scrapes and sends response, also populates metadata cache.
+async function scrapeInstagramPostCached(cleanUrl, res) {
+  const result = await scrapeInstagramPost(cleanUrl);
+  if (!result) {
+    if (!res.headersSent) {
+      res.status(404).json({
+        error: "Post not found or private. Make sure the account is public and the link is correct."
+      });
+    }
+    return null;
+  }
+  metaCacheSet(cleanUrl, result);
+  if (!res.headersSent) res.json(result);
+  return result;
 }
 
 // ======================================================
@@ -519,63 +583,88 @@ function buildInstagramResponse(data, cleanUrl) {
 
   return {
     type: isVideo ? "video" : "image",
-    can_preview: !!(previewUrl && isVideo),
+    // can_preview = true for both videos (stream preview) and images (show inline)
+    can_preview: !!(previewUrl || data.thumbnail),
     preview_url: previewUrl || data.thumbnail || null,
     download_url: `/api/instagram/download?url=${encodeURIComponent(cleanUrl)}&type=${isVideo ? "video" : "image"}`,
     username: resolvedUser2,
     title: data.title || "Instagram media",
     caption: data.description || "",
-    thumbnail: data.thumbnail || null
+    thumbnail: data.thumbnail || null,
+    scraped: false
   };
 }
 
-app.get("/api/instagram", metaLimiter, (req, res) => {
+app.get("/api/instagram", metaLimiter, async (req, res) => {
   const { url } = req.query;
   if (!url) return res.status(400).json({ error: "Missing URL" });
   if (!isInstagramUrl(url)) return res.status(400).json({ error: "Invalid Instagram URL. Please paste an Instagram link." });
 
   const cleanUrl = url.trim();
 
-  // Route profile URLs to the DP scraper (yt-dlp can't fetch profile pictures)
+  // Return cached metadata immediately — avoids duplicate fetches for the same post
+  const cached = metaCacheGet(cleanUrl);
+  if (cached) {
+    console.log("[cache hit]", cleanUrl);
+    return res.json(cached);
+  }
+
+  // Profile URLs → DP scraper (yt-dlp can't fetch profile pictures)
   if (isInstagramProfileUrl(cleanUrl)) {
     return fetchInstagramDP(cleanUrl, res);
   }
 
-  // Stories: extract username from /stories/{username}/{id}/ for the response
-  // yt-dlp handles stories the same as reels — fall through to yt-dlp path below
+  // For every non-profile Instagram URL, try OG scraping FIRST for /p/ posts
+  // (yt-dlp is rate-limited on posts; OG scraping is faster and more reliable).
+  // For /reel/ and /stories/, fall through to yt-dlp which handles them well.
+  const isPostUrl = /\/p\/[^/]+/.test(cleanUrl);
 
-  if (!fs.existsSync(YTDLP_PATH)) {
-    return res.status(503).json({ error: "yt-dlp not installed" });
+  if (isPostUrl) {
+    // OG scraping is the primary path for /p/ posts — yt-dlp is too unreliable
+    try {
+      const cached2 = await scrapeInstagramPostCached(cleanUrl, res);
+      if (cached2 !== null) return; // response already sent
+    } catch (e) {
+      console.error("OG scrape error for /p/ post:", e.message);
+      if (!res.headersSent) res.status(500).json({ error: "Failed to fetch this post. It may be private or unavailable." });
+    }
+    return;
   }
 
-  // Use shorter timeout for /p/ posts so OG fallback kicks in faster;
-  // reels and IGTV get the full 60s since yt-dlp usually works for those.
-  const isPostUrl = /\/p\/[^/]+/.test(cleanUrl);
-  const ytdlpTimeout = isPostUrl ? 20000 : 60000;
+  if (!fs.existsSync(YTDLP_PATH)) {
+    // No yt-dlp — fall back to OG scraping for reels too
+    try {
+      await scrapeInstagramPostCached(cleanUrl, res);
+    } catch (e) {
+      if (!res.headersSent) res.status(503).json({ error: "Media extraction service unavailable. Please try again later." });
+    }
+    return;
+  }
 
+  // Reels, IGTV, Stories → yt-dlp (60s timeout; works well for these)
   const metaCmd = `"${YTDLP_PATH}" -J --no-warnings --extractor-retries 2 --socket-timeout 15 "${cleanUrl.replace(/"/g, '\\"')}"`;
 
-  exec(metaCmd, { timeout: ytdlpTimeout, maxBuffer: 30 * 1024 * 1024 }, async (err, stdout, stderr) => {
+  exec(metaCmd, { timeout: 60000, maxBuffer: 30 * 1024 * 1024 }, async (err, stdout, stderr) => {
     if (err) {
       console.error("IG yt-dlp failed, falling back to OG scraping:", (err.message || "").split("\n")[0]);
-      try { await scrapeInstagramPost(cleanUrl, res); } catch (e) {
+      try { await scrapeInstagramPostCached(cleanUrl, res); } catch (e) {
         console.error("OG scrape error:", e.message);
-        if (!res.headersSent) res.status(500).json({ error: "Failed to fetch Instagram post. Try again in a moment." });
+        if (!res.headersSent) res.status(500).json({ error: "Failed to fetch this post. It may be private or unavailable." });
       }
       return;
     }
     let raw = stdout.trim();
-    // yt-dlp sometimes emits warnings before JSON — find first '{'
     const jsonStart = raw.indexOf("{");
     if (jsonStart > 0) raw = raw.slice(jsonStart);
     try {
       const data = JSON.parse(raw);
-      res.json(buildInstagramResponse(data, cleanUrl));
+      const result = buildInstagramResponse(data, cleanUrl);
+      metaCacheSet(cleanUrl, result);
+      res.json(result);
     } catch {
-      // JSON parse failed — fallback to OG scraping
       console.error("IG JSON parse failed, falling back to OG scraping");
-      try { await scrapeInstagramPost(cleanUrl, res); } catch (e) {
-        if (!res.headersSent) res.status(500).json({ error: "Failed to parse Instagram response." });
+      try { await scrapeInstagramPostCached(cleanUrl, res); } catch (e) {
+        if (!res.headersSent) res.status(500).json({ error: "Failed to parse media response. Please try again." });
       }
     }
   });
@@ -652,7 +741,7 @@ app.get("/api/instagram/download", downloadLimiter, (req, res) => {
   }
 });
 
-// Profile picture proxy download (validates CDN domain to prevent SSRF)
+// Profile picture proxy download (validates CDN domain, checks status before piping)
 app.get("/api/instagram/download-dp", dpLimiter, (req, res) => {
   const { url, username } = req.query;
   if (!url) return res.status(400).json({ error: "Missing URL" });
@@ -667,16 +756,32 @@ app.get("/api/instagram/download-dp", dpLimiter, (req, res) => {
 
   const https = require("https");
   const filename = safeFileName(`${username || "instagram"}_dp`, ".jpg");
-  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-  res.setHeader("Content-Type", "image/jpeg");
 
-  https.get(url, {
+  const cdnReq = https.get(url, {
+    timeout: 30000,
     headers: {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      "Referer": "https://www.instagram.com/"
     }
   }, (stream) => {
+    // Follow redirect
+    if ((stream.statusCode === 301 || stream.statusCode === 302) && stream.headers.location) {
+      stream.destroy();
+      return res.redirect(307, `/api/instagram/download-dp?url=${encodeURIComponent(stream.headers.location)}&username=${username || ""}`);
+    }
+    // Verify CDN actually returned the image before committing headers
+    if (stream.statusCode !== 200) {
+      stream.resume();
+      return res.status(502).json({ error: "Profile picture CDN returned an error. The URL may have expired — try previewing again." });
+    }
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Type", "image/jpeg");
+    if (stream.headers["content-length"]) res.setHeader("Content-Length", stream.headers["content-length"]);
     stream.pipe(res);
-  }).on("error", () => { if (!res.headersSent) res.status(500).end(); });
+    stream.on("error", () => { if (!res.headersSent) res.status(500).end(); });
+  });
+  cdnReq.on("error", () => { if (!res.headersSent) res.status(500).json({ error: "Failed to download profile picture." }); });
+  cdnReq.on("timeout", () => { cdnReq.destroy(); if (!res.headersSent) res.status(504).json({ error: "Download timed out." }); });
 });
 
 // General CDN media proxy — used for scraped posts where yt-dlp couldn't run
@@ -707,10 +812,19 @@ app.get("/api/instagram/download-proxy", downloadLimiter, (req, res) => {
       "Referer": "https://www.instagram.com/"
     }
   }, (stream) => {
-    // Follow one redirect if CDN redirects
+    // Follow redirect
     if ((stream.statusCode === 301 || stream.statusCode === 302) && stream.headers.location) {
       stream.destroy();
       return res.redirect(307, `/api/instagram/download-proxy?url=${encodeURIComponent(stream.headers.location)}&type=${type}&username=${username || ""}`);
+    }
+    // Verify the CDN actually returned the media before committing headers.
+    // Without this check, a 403/404 CDN response gets piped as the "file", creating
+    // a corrupt download that has 0 bytes or contains an HTML error body.
+    if (stream.statusCode !== 200) {
+      stream.resume(); // drain so socket is reused
+      return res.status(502).json({
+        error: `Media CDN returned HTTP ${stream.statusCode}. The URL may have expired — click Preview again then retry the download.`
+      });
     }
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader("Content-Type", ct);
