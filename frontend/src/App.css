@@ -336,6 +336,207 @@ body {
   vertical-align: middle;
 }
 
+/* ======================================================
+   SEO LANDING PAGES
+   ====================================================== */
+.seo-page {
+  min-height: 100vh;
+  background: linear-gradient(to right, var(--bg1), var(--bg2));
+}
+
+.seo-main {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+.seo-hero {
+  text-align: center;
+  padding: 40px 0 32px;
+}
+
+.seo-hero h1 {
+  font-size: 36px;
+  margin-bottom: 14px;
+  color: var(--text);
+}
+
+.seo-desc {
+  font-size: 17px;
+  color: var(--muted);
+  max-width: 620px;
+  margin: 0 auto 24px;
+  line-height: 1.65;
+}
+
+.seo-cta-btn {
+  display: inline-block;
+  background: var(--brand);
+  color: white;
+  padding: 14px 32px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 16px;
+  text-decoration: none;
+  transition: filter 0.15s, transform 0.15s;
+  box-shadow: 0 4px 16px rgba(99,102,241,0.3);
+}
+.seo-cta-btn:hover { filter: brightness(0.9); transform: translateY(-1px); }
+.seo-cta-btn.large { font-size: 18px; padding: 16px 40px; }
+
+.seo-section {
+  background: #ffffffee;
+  border-radius: 16px;
+  padding: 28px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+}
+
+.seo-section h2 {
+  font-size: 22px;
+  margin: 0 0 18px;
+  color: var(--brand);
+}
+
+.seo-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.seo-step {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #f8f9ff;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 15px;
+}
+
+.seo-step-num {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--brand);
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.seo-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.seo-features li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+  padding: 6px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.seo-features li:last-child { border-bottom: none; }
+
+.seo-feature-icon { font-size: 20px; width: 28px; text-align: center; }
+
+.seo-faq {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.seo-faq-item {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.seo-faq-item summary {
+  padding: 14px 16px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.seo-faq-item summary::-webkit-details-marker { display: none; }
+.seo-faq-item summary::after { content: " ▼"; font-size: 11px; color: var(--brand); }
+.seo-faq-item[open] summary::after { content: " ▲"; }
+
+.seo-faq-item p {
+  margin: 0;
+  padding: 0 16px 14px;
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.65;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 12px;
+}
+
+.seo-cta-section {
+  text-align: center;
+  padding: 40px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  margin-bottom: 20px;
+  color: white;
+}
+
+.seo-cta-section h2 { color: white; margin: 0 0 10px; font-size: 26px; }
+.seo-cta-section p { color: rgba(255,255,255,0.85); margin: 0 0 24px; }
+.seo-cta-section .seo-cta-btn {
+  background: white;
+  color: var(--brand);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+}
+.seo-cta-section .seo-cta-btn:hover { filter: brightness(0.95); }
+
+.seo-related {
+  background: #ffffffee;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+}
+
+.seo-related h3 { margin: 0 0 14px; color: var(--text); font-size: 18px; }
+
+.seo-related ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.seo-related ul li a {
+  display: inline-block;
+  background: #f0f0ff;
+  color: var(--brand);
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  border: 1px solid #e0e0ff;
+  transition: background 0.15s;
+}
+.seo-related ul li a:hover { background: #e0e0ff; }
+
 /* Mobile nav */
 @media (max-width: 600px) {
   .links {

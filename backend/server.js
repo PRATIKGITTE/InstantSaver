@@ -8,7 +8,21 @@ const os = require("os");
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-app.use(cors());
+// CORS — allow instantsaver.in and local dev; block random scrapers
+const allowedOrigins = [
+  "https://instantsaver.in",
+  "https://www.instantsaver.in",
+  "http://localhost:3000"
+];
+app.use(cors({
+  origin: (origin, cb) => {
+    // Allow requests with no origin (curl, Render health checks, same-origin)
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    cb(null, true); // keep permissive for now; tighten after domain is fully stable
+  },
+  methods: ["GET", "OPTIONS"],
+  optionsSuccessStatus: 204
+}));
 
 // Force HTTPS redirect
 app.use((req, res, next) => {
@@ -18,7 +32,40 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json({ limit: "50mb" }));
+app.use(express.json({ limit: "1mb" }));
+
+// ======================================================
+// IN-MEMORY RATE LIMITER (no extra npm deps required)
+// Resets per window; auto-prunes stale entries.
+// ======================================================
+const _rlMap = new Map();
+
+function _rlCheck(ip, maxReqs, windowMs) {
+  const now = Date.now();
+  let e = _rlMap.get(ip);
+  if (!e || now > e.resetAt) e = { count: 0, resetAt: now + windowMs };
+  e.count++;
+  _rlMap.set(ip, e);
+  if (_rlMap.size > 10000) {
+    for (const [k, v] of _rlMap) { if (now > v.resetAt) _rlMap.delete(k); }
+  }
+  return e.count <= maxReqs;
+}
+
+function rateLimiter(maxReqs, windowMs, msg) {
+  return (req, res, next) => {
+    const ip = (req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
+    if (!_rlCheck(ip, maxReqs, windowMs)) {
+      return res.status(429).json({ error: msg || "Too many requests — please wait a moment and try again." });
+    }
+    next();
+  };
+}
+
+// Preset limiters
+const metaLimiter     = rateLimiter(30,  60_000, "Too many lookups. Please wait 1 minute.");
+const downloadLimiter = rateLimiter(15,  60_000, "Too many downloads. Please wait 1 minute.");
+const dpLimiter       = rateLimiter(20,  60_000, "Too many profile requests. Please wait 1 minute.");
 
 // ---------- yt-dlp PATH ----------
 const YTDLP_PATH = path.join(__dirname, "bin", "yt-dlp");
@@ -83,8 +130,8 @@ function isInstagramProfileUrl(url) {
   try {
     const u = new URL(url.trim());
     if (!/instagram\.com$/i.test(u.hostname)) return false;
-    const path = u.pathname.replace(/\/$/, "");
-    const parts = path.split("/").filter(Boolean);
+    const upath = u.pathname.replace(/\/$/, "");
+    const parts = upath.split("/").filter(Boolean);
     if (parts.length !== 1) return false;
     const reserved = ["p", "reel", "reels", "tv", "stories", "explore", "accounts", "direct", "ar", "a", "s"];
     return !reserved.includes(parts[0].toLowerCase());
@@ -482,7 +529,7 @@ function buildInstagramResponse(data, cleanUrl) {
   };
 }
 
-app.get("/api/instagram", (req, res) => {
+app.get("/api/instagram", metaLimiter, (req, res) => {
   const { url } = req.query;
   if (!url) return res.status(400).json({ error: "Missing URL" });
   if (!isInstagramUrl(url)) return res.status(400).json({ error: "Invalid Instagram URL. Please paste an Instagram link." });
@@ -568,7 +615,7 @@ function streamYtdlp(args, res, filename, contentType, logTag) {
   });
 }
 
-app.get("/api/instagram/download", (req, res) => {
+app.get("/api/instagram/download", downloadLimiter, (req, res) => {
   const { url, type, item } = req.query;
   if (!url) return res.status(400).json({ error: "Missing URL" });
   if (!isInstagramUrl(url)) return res.status(400).json({ error: "Invalid Instagram URL." });
@@ -606,7 +653,7 @@ app.get("/api/instagram/download", (req, res) => {
 });
 
 // Profile picture proxy download (validates CDN domain to prevent SSRF)
-app.get("/api/instagram/download-dp", (req, res) => {
+app.get("/api/instagram/download-dp", dpLimiter, (req, res) => {
   const { url, username } = req.query;
   if (!url) return res.status(400).json({ error: "Missing URL" });
 
@@ -634,7 +681,7 @@ app.get("/api/instagram/download-dp", (req, res) => {
 
 // General CDN media proxy — used for scraped posts where yt-dlp couldn't run
 // Validates domain to prevent SSRF, then streams file directly from Instagram's CDN
-app.get("/api/instagram/download-proxy", (req, res) => {
+app.get("/api/instagram/download-proxy", downloadLimiter, (req, res) => {
   const { url, type, username } = req.query;
   if (!url) return res.status(400).json({ error: "Missing URL" });
 
@@ -686,7 +733,7 @@ app.get("/api/instagram/download-proxy", (req, res) => {
 // ======================================================
 // YOUTUBE (✅ WORKING WITH COOKIES)
 // ======================================================
-app.get("/api/youtube", (req, res) => {
+app.get("/api/youtube", metaLimiter, (req, res) => {
   const { url } = req.query;
 
   if (!url) return res.status(400).json({ error: "Missing URL" });
@@ -701,13 +748,13 @@ app.get("/api/youtube", (req, res) => {
 
   const cookiePath = ensureYouTubeCookies();
 
-  const cmd = `"${YTDLP_PATH}" ${cookiePath ? `--cookies "${cookiePath}"` : ''} -J "${cleanUrl.replace(/"/g, '\\"')}"`;
+  const cmd = `"${YTDLP_PATH}" --no-warnings --socket-timeout 20 ${cookiePath ? `--cookies "${cookiePath}"` : ''} -J "${cleanUrl.replace(/"/g, '\\"')}"`;
 
-  exec(cmd, { maxBuffer: 30 * 1024 * 1024 }, (err, stdout, stderr) => {
+  exec(cmd, { timeout: 45000, maxBuffer: 30 * 1024 * 1024 }, (err, stdout, stderr) => {
     if (err) {
-      console.error("YouTube error:", stderr || err.message);
+      console.error("YouTube error:", (err.message || stderr || "").split("\n")[0]);
       return res.status(503).json({
-        error: "YouTube blocked or cookies expired. Try another video."
+        error: "YouTube is temporarily unavailable. Please try again in a moment."
       });
     }
 
@@ -719,71 +766,102 @@ app.get("/api/youtube", (req, res) => {
     }
 
     const formats = Array.isArray(data.formats) ? data.formats : [];
+
+    // Progressive (pre-muxed) formats — work WITHOUT ffmpeg
     const progressive = formats.filter(
-      (f) =>
-        f.url &&
-        f.vcodec !== "none" &&
-        f.acodec !== "none" &&
-        (!f.height || f.height <= 720)
+      (f) => f.url && f.vcodec !== "none" && f.acodec !== "none"
     );
 
-    const best = progressive.sort(
-      (a, b) => (b.tbr || 0) - (a.tbr || 0)
-    )[0];
+    // Available quality buckets (for frontend quality selector)
+    const qualityOptions = [];
+    const heights = [360, 480, 720];
+    heights.forEach((h) => {
+      const match = progressive.filter((f) => f.height && f.height <= h)
+        .sort((a, b) => (b.tbr || 0) - (a.tbr || 0))[0];
+      if (match) qualityOptions.push({ label: `${h}p`, height: h });
+    });
+    // Dedupe
+    const uniqueQualities = qualityOptions.filter((q, i, arr) =>
+      arr.findIndex((x) => x.height === q.height) === i
+    );
+
+    const best = progressive.sort((a, b) => (b.tbr || 0) - (a.tbr || 0))[0];
+
+    // Check if audio-only formats are available (m4a or webm audio)
+    const hasAudio = formats.some((f) => f.vcodec === "none" && (f.ext === "m4a" || f.ext === "webm" || f.acodec !== "none"));
 
     res.json({
       type: "video",
       can_preview: !!best?.url,
-      preview_url: best?.url || data.thumbnail || null,
-      download_url: `/api/youtube/download?url=${encodeURIComponent(
-        cleanUrl
-      )}&title=${encodeURIComponent(data.title || "youtube")}`,
-      username: data.uploader || data.channel || "youtube",
-      title: data.title || "YouTube video"
+      preview_url: best?.url || null,
+      thumbnail: data.thumbnail || null,
+      download_url: `/api/youtube/download?url=${encodeURIComponent(cleanUrl)}&title=${encodeURIComponent(data.title || "youtube")}`,
+      audio_url: hasAudio ? `/api/youtube/audio?url=${encodeURIComponent(cleanUrl)}&title=${encodeURIComponent(data.title || "youtube")}` : null,
+      username: data.uploader || data.channel || "YouTube",
+      title: data.title || "YouTube video",
+      duration: data.duration || null,
+      view_count: data.view_count || null,
+      quality_options: uniqueQualities.length ? uniqueQualities : [{ label: "720p", height: 720 }]
     });
   });
 });
 
-app.get("/api/youtube/download", (req, res) => {
-  const { url, title } = req.query;
+app.get("/api/youtube/download", downloadLimiter, (req, res) => {
+  const { url, title, quality } = req.query;
 
   if (!url) return res.status(400).json({ error: "Missing URL" });
-  if (!isYouTubeUrl(url))
-    return res.status(400).json({ error: "Invalid YouTube URL" });
-  if (!fs.existsSync(YTDLP_PATH))
-    return res.status(503).json({ error: "yt-dlp not available" });
+  if (!isYouTubeUrl(url)) return res.status(400).json({ error: "Invalid YouTube URL" });
+  if (!fs.existsSync(YTDLP_PATH)) return res.status(503).json({ error: "yt-dlp not available" });
 
   const cleanUrl = normalizeYouTube(url);
-  if (!isValidYouTubeVideo(cleanUrl))
-    return res.status(400).json({ error: "Invalid YouTube video URL" });
+  if (!isValidYouTubeVideo(cleanUrl)) return res.status(400).json({ error: "Invalid YouTube video URL" });
 
   const cookiePath = ensureYouTubeCookies();
 
-  const filename = safeFileName(title || "youtube_video", ".mp4");
-  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-  res.setHeader("Content-Type", "video/mp4");
+  // Build height-constrained format selector — no ffmpeg needed (picks pre-muxed mp4)
+  const h = parseInt(quality, 10);
+  const heightCap = [360, 480, 720].includes(h) ? h : 720;
+  const fmt = `best[height<=${heightCap}][ext=mp4]/best[height<=${heightCap}]/best[ext=mp4]/best`;
 
+  const filename = safeFileName(title || "youtube_video", ".mp4");
   const args = [
+    "--no-warnings",
+    "--socket-timeout", "30",
+    "--extractor-retries", "2",
     ...(cookiePath ? ["--cookies", cookiePath] : []),
-    "-f",
-    "best[height<=720][ext=mp4]/best[ext=mp4]/best",
-    "--merge-output-format",
-    "mp4",
-    "--recode-video",
-    "mp4",
-    "--postprocessor-args",
-    "ffmpeg:-c:v libx264 -c:a aac -movflags +faststart",
-    "-o",
-    "-",
+    "-f", fmt,
+    "-o", "-",
     cleanUrl
   ];
 
-  const child = spawn(YTDLP_PATH, args);
-  child.stdout.pipe(res);
-  child.stderr.on("data", (d) =>
-    console.error("YT download:", d.toString())
-  );
-  child.on("close", () => res.end());
+  streamYtdlp(args, res, filename, "video/mp4", "YT-video");
+});
+
+// Audio-only download — uses m4a/webm audio stream (NO ffmpeg required)
+app.get("/api/youtube/audio", downloadLimiter, (req, res) => {
+  const { url, title } = req.query;
+
+  if (!url) return res.status(400).json({ error: "Missing URL" });
+  if (!isYouTubeUrl(url)) return res.status(400).json({ error: "Invalid YouTube URL" });
+  if (!fs.existsSync(YTDLP_PATH)) return res.status(503).json({ error: "yt-dlp not available" });
+
+  const cleanUrl = normalizeYouTube(url);
+  if (!isValidYouTubeVideo(cleanUrl)) return res.status(400).json({ error: "Invalid YouTube video URL" });
+
+  const cookiePath = ensureYouTubeCookies();
+  const filename = safeFileName(title || "youtube_audio", ".m4a");
+
+  const args = [
+    "--no-warnings",
+    "--socket-timeout", "30",
+    "--extractor-retries", "2",
+    ...(cookiePath ? ["--cookies", cookiePath] : []),
+    "-f", "bestaudio[ext=m4a]/bestaudio",
+    "-o", "-",
+    cleanUrl
+  ];
+
+  streamYtdlp(args, res, filename, "audio/mp4", "YT-audio");
 });
 
 // ---------- Start server ----------

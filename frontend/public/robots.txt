@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /api/
+Crawl-delay: 1
 
 Sitemap: https://instantsaver.in/sitemap.xml

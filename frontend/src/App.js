@@ -1,15 +1,34 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet";
+import ReactGA from "react-ga4";
 
 import DownloaderForm from "./components/DownloaderForm";
 import FAQ from "./components/FAQ";
 import Features from "./components/Features";
 import Contact from "./components/Contact";
+import SeoPage from "./components/SeoPage";
 import "./App.css";
 import InstagramInfo from "./components/InstagramInfo";
 import YouTubeInfo from "./components/YouTubeInfo";
+
+// Initialize GA4 — replace with your real Measurement ID from Google Analytics
+const GA_ID = process.env.REACT_APP_GA_ID || "G-XXXXXXXXXX";
+if (GA_ID && GA_ID !== "G-XXXXXXXXXX") {
+  ReactGA.initialize(GA_ID);
+}
+
+// Track page views on every route change
+function GAPageTracker() {
+  const location = useLocation();
+  useEffect(() => {
+    if (GA_ID && GA_ID !== "G-XXXXXXXXXX") {
+      ReactGA.send({ hitType: "pageview", page: location.pathname + location.search });
+    }
+  }, [location]);
+  return null;
+}
 
 const TABS = [
   { id: "instagram", labelKey: "tab_instagram" },
@@ -72,18 +91,10 @@ export default function App() {
   const [platform, setPlatform] = useState("instagram");
   const [igType, setIgType] = useState("auto");
   const [ytType, setYtType] = useState("auto");
-  const [previewUrl, setPreviewUrl] = useState("");
-  const [previewFormat, setPreviewFormat] = useState("");
-  const [previewUsername, setPreviewUsername] = useState("");
-
-  const clearPreview = () => {
-    setPreviewUrl("");
-    setPreviewFormat("");
-    setPreviewUsername("");
-  };
 
   return (
     <Router>
+      <GAPageTracker />
       <Helmet>
         <title>{t("app_title", "InstantSaver")} — {t("page_title", "Instagram Downloader: Reels, Photos, Carousel Free")}</title>
         <meta name="description" content={t("hero_desc", "Download Instagram Reels, Photos, and Carousel posts in HD — no watermark, no login. Free & fast on iPhone, Android, and PC.")} />
@@ -166,33 +177,8 @@ export default function App() {
                     ))}
                   </div>
 
-                  {/* LINK PASTE + PREVIEW */}
-                  <DownloaderForm
-                    platform={platform}
-                    igType={igType}
-                    ytType={ytType}
-                    setPreviewUrl={setPreviewUrl}
-                    setPreviewFormat={setPreviewFormat}
-                    setPreviewUsername={setPreviewUsername}
-                  />
-
-                  {previewUrl && (
-                    <div className="preview-improved">
-                      <div className="preview-header">
-                        <h3>{t("preview_title", "Preview")}</h3>
-                        <button className="clear-preview" onClick={clearPreview} aria-label="Clear preview">×</button>
-                      </div>
-                      {platform === "instagram" && previewUsername && (
-                        <p className="username">Posted by @{previewUsername}</p>
-                      )}
-                      <div className="video-container">
-                        <video controls preload="metadata" width="100%">
-                          <source src={previewUrl} type={`video/${previewFormat || "mp4"}`} />
-                          {t("no_video_support", "Your browser does not support the video tag.")}
-                        </video>
-                      </div>
-                    </div>
-                  )}
+                  {/* LINK PASTE + PREVIEW — all preview state managed inside DownloaderForm */}
+                  <DownloaderForm platform={platform} igType={igType} ytType={ytType} />
 
                   <InstagramInfo />
                 </div>
@@ -214,30 +200,8 @@ export default function App() {
                     ))}
                   </div>
 
-                  {/* LINK PASTE + PREVIEW */}
-                  <DownloaderForm
-                    platform={platform}
-                    igType={igType}
-                    ytType={ytType}
-                    setPreviewUrl={setPreviewUrl}
-                    setPreviewFormat={setPreviewFormat}
-                    setPreviewUsername={setPreviewUsername}
-                  />
-
-                  {previewUrl && (
-                    <div className="preview-improved">
-                      <div className="preview-header">
-                        <h3>{t("preview_title", "Preview")}</h3>
-                        <button className="clear-preview" onClick={clearPreview} aria-label="Clear preview">×</button>
-                      </div>
-                      <div className="video-container">
-                        <video controls preload="metadata" width="100%">
-                          <source src={previewUrl} type={`video/${previewFormat || "mp4"}`} />
-                          {t("no_video_support", "Your browser does not support the video tag.")}
-                        </video>
-                      </div>
-                    </div>
-                  )}
+                  {/* LINK PASTE + PREVIEW — all preview state managed inside DownloaderForm */}
+                  <DownloaderForm platform={platform} igType={igType} ytType={ytType} />
 
                   <YouTubeInfo />
                 </div>
@@ -288,6 +252,14 @@ export default function App() {
         <Route path="/contact" element={<><RedirectOnRefresh /><Contact /></>} />
         <Route path="/privacy" element={<><RedirectOnRefresh /><StaticPage title="Privacy Policy" body="InstantSaver does not store, log, or share any user data or downloaded URLs. All processing happens server-side and no personal information is collected. Downloads are fetched directly from public CDNs. By using this service you agree to respect the terms of the platforms you download from." /></>} />
         <Route path="/terms" element={<><RedirectOnRefresh /><StaticPage title="Terms of Service" body="InstantSaver is provided free of charge for personal, non-commercial use. You agree to use it only to download publicly accessible content for personal offline use. Redistribution or commercial use of downloaded content without the original creator's permission is prohibited. We reserve the right to suspend service at any time without notice." /></>} />
+
+        {/* SEO Landing Pages — high-quality, crawlable content for Google */}
+        <Route path="/instagram-downloader" element={<SeoPage slug="instagram-downloader" />} />
+        <Route path="/reels-downloader" element={<SeoPage slug="reels-downloader" />} />
+        <Route path="/youtube-downloader" element={<SeoPage slug="youtube-downloader" />} />
+        <Route path="/profile-picture-downloader" element={<SeoPage slug="profile-picture-downloader" />} />
+        <Route path="/carousel-downloader" element={<SeoPage slug="carousel-downloader" />} />
+
         <Route path="*" element={<RedirectOnRefresh />} />
       </Routes>
     </Router>
