@@ -70,6 +70,31 @@ const dpLimiter       = rateLimiter(20,  60_000, "Too many profile requests. Ple
 // ---------- yt-dlp PATH ----------
 const YTDLP_PATH = path.join(__dirname, "bin", "yt-dlp");
 
+// ======================================================
+// STRUCTURED LOGGER
+// Format: [HH:MM:SS.mmm] [TAG] message
+// ======================================================
+function ts() {
+  return new Date().toISOString().slice(11, 23); // HH:MM:SS.mmm
+}
+function log(tag, ...args) {
+  console.log(`[${ts()}] [${tag}]`, ...args);
+}
+function logErr(tag, ...args) {
+  console.error(`[${ts()}] [${tag}] ❌`, ...args);
+}
+
+// Request logging middleware — logs every API hit
+app.use("/api", (req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    const status = res.statusCode;
+    const emoji = status < 400 ? "✅" : status < 500 ? "⚠️" : "❌";
+    log("HTTP", `${emoji} ${req.method} ${req.url} → ${status} (${Date.now() - start}ms)`);
+  });
+  next();
+});
+
 // ---------- YouTube cookies path ----------
 const YT_COOKIES_PATH = path.join(os.tmpdir(), "yt-cookies.txt");
 
@@ -220,9 +245,14 @@ function fetchInstagramDP(profileUrl, res, redirectCount) {
     const u = new URL(profileUrl.trim());
     username = u.pathname.replace(/\//g, "");
   } catch {
+    logErr("PROFILE", "Invalid profile URL:", profileUrl);
     return res.status(400).json({ error: "Invalid profile URL" });
   }
-  if (!username) return res.status(400).json({ error: "Could not extract username from URL" });
+  if (!username) {
+    logErr("PROFILE", "Empty username extracted from:", profileUrl);
+    return res.status(400).json({ error: "Could not extract username from URL" });
+  }
+  log("PROFILE", `Fetching IG profile: @${username} (redirect#${redirectCount}) via facebookexternalhit UA`);
 
   const options = {
     hostname: "www.instagram.com",
@@ -238,22 +268,28 @@ function fetchInstagramDP(profileUrl, res, redirectCount) {
   };
 
   const req = https.request(options, (response) => {
+    log("PROFILE", `Instagram responded HTTP ${response.statusCode} for @${username}`);
+
     // Follow redirects (renamed accounts etc.)
     if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location && redirectCount < 2) {
       response.resume();
+      log("PROFILE", `Redirect → ${response.headers.location}`);
       try {
         const loc = new URL(response.headers.location, "https://www.instagram.com");
         return fetchInstagramDP(loc.href, res, redirectCount + 1);
       } catch {
+        logErr("PROFILE", "Bad redirect URL:", response.headers.location);
         return res.status(404).json({ error: "Profile not found." });
       }
     }
     if (response.statusCode === 404) {
       response.resume();
+      logErr("PROFILE", `@${username} returned 404 — account not found or renamed`);
       return res.status(404).json({ error: "Instagram profile not found. Check the username." });
     }
     if (response.statusCode >= 400) {
       response.resume();
+      logErr("PROFILE", `@${username} returned HTTP ${response.statusCode}`);
       return res.status(404).json({ error: "Could not access this profile. It may be private or unavailable." });
     }
 
@@ -261,6 +297,7 @@ function fetchInstagramDP(profileUrl, res, redirectCount) {
     response.setEncoding("utf8");
     response.on("data", (chunk) => { if (html.length < 2000000) html += chunk; });
     response.on("end", () => {
+      log("PROFILE", `HTML received: ${html.length} bytes for @${username}`);
       const pick = (patterns) => {
         for (const p of patterns) {
           const m = html.match(p);
@@ -272,24 +309,44 @@ function fetchInstagramDP(profileUrl, res, redirectCount) {
       const rawTitle = pick([/<meta[^>]+property="og:title"[^>]+content="([^"]+)"/i, /<meta[^>]+content="([^"]+)"[^>]+property="og:title"/i]);
       const ogDesc = pick([/<meta[^>]+property="og:description"[^>]+content="([^"]+)"/i, /<meta[^>]+content="([^"]+)"[^>]+property="og:description"/i]);
 
+      log("PROFILE", `og:image=${dpUrl ? "found" : "MISSING"} og:title=${rawTitle ? rawTitle.slice(0,40) : "MISSING"}`);
+
       if (dpUrl) {
-        const displayName = rawTitle ? rawTitle.replace(/\s*\(@[^)]+\).*$/, "").trim() : username;
+        // Decode HTML entities in title before extracting display name
+        const decodeHtml = (s) => s
+          .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+          .replace(/&quot;/g, '"').replace(/&#(\d+);/g, (_, n) => String.fromCharCode(n))
+          .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)));
+        const decodedTitle = rawTitle ? decodeHtml(rawTitle) : "";
+        // Strip " (@handle) • Instagram photos and videos" suffix
+        const displayName = decodedTitle.replace(/\s*\(@[^)]+\).*$/, "").trim();
+        log("PROFILE", `✅ @${username} → display_name="${displayName}" dp_url_len=${dpUrl.length}`);
         return res.json({
           type: "profile",
           username,
           display_name: displayName || username,
           bio: ogDesc || null,
           preview_url: dpUrl,
+          profile_url: `https://www.instagram.com/${username}/`,
           can_preview: true,
+          download_available: true,
           download_url: `/api/instagram/download-dp?url=${encodeURIComponent(dpUrl)}&username=${encodeURIComponent(username)}`
         });
       }
+      logErr("PROFILE", `No og:image in ${html.length}B of HTML for @${username}. First 200 chars: ${html.slice(0,200)}`);
       return res.status(404).json({ error: "Profile picture not found. The account may be private or temporarily unavailable." });
     });
   });
 
-  req.on("timeout", () => { req.destroy(); if (!res.headersSent) res.status(504).json({ error: "Profile fetch timed out. Try again." }); });
-  req.on("error", () => { if (!res.headersSent) res.status(500).json({ error: "Failed to connect to Instagram. Try again." }); });
+  req.on("timeout", () => {
+    req.destroy();
+    logErr("PROFILE", `Timeout fetching @${username}`);
+    if (!res.headersSent) res.status(504).json({ error: "Profile fetch timed out. Try again." });
+  });
+  req.on("error", (e) => {
+    logErr("PROFILE", `Network error for @${username}: ${e.message}`);
+    if (!res.headersSent) res.status(500).json({ error: "Failed to connect to Instagram. Try again." });
+  });
   req.end();
 }
 
@@ -302,6 +359,7 @@ function fetchInstagramDP(profileUrl, res, redirectCount) {
 // Fetch og: tags from one Instagram URL. Promise resolves to { image, video, title, desc, finalPathname } or null on failure.
 function fetchOgSingle(pathname, search, redirectCount) {
   redirectCount = redirectCount || 0;
+  log("OG", `fetch ${pathname}${search || ""} (redirect#${redirectCount})`);
   return new Promise((resolve) => {
     const https = require("https");
     const options = {
@@ -330,13 +388,15 @@ function fetchOgSingle(pathname, search, redirectCount) {
         );
         return;
       }
-      if (response.statusCode >= 400) return resolve(null);
+      if (response.statusCode >= 400) {
+        logErr("OG", `HTTP ${response.statusCode} for ${pathname}${search || ""}`);
+        return resolve(null);
+      }
       let html = "";
       response.setEncoding("utf8");
-      // Stop accumulating past 2MB but keep draining the stream so 'end' still fires.
-      // (Destroying the request here would abort the response before 'end' and hang the promise forever.)
       response.on("data", (chunk) => { if (html.length < 2000000) html += chunk; });
       response.on("end", () => {
+        log("OG", `${pathname}${search||""} → ${html.length}B HTML, status=${response.statusCode}`);
         const pick = (patterns) => {
           for (const p of patterns) {
             const m = html.match(p);
@@ -344,6 +404,12 @@ function fetchOgSingle(pathname, search, redirectCount) {
           }
           return null;
         };
+        // Decode HTML entities in text fields (og: content always HTML-escaped)
+        const decodeHtml = (s) => !s ? s : s
+          .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+          .replace(/&quot;/g, '"').replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n))
+          .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)));
+
         resolve({
           image: pick([
             /<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i,
@@ -355,20 +421,26 @@ function fetchOgSingle(pathname, search, redirectCount) {
             /<meta[^>]+property="og:video"[^>]+content="([^"]+)"/i,
             /<meta[^>]+content="([^"]+)"[^>]+property="og:video"/i
           ]),
-          title: pick([
+          title: decodeHtml(pick([
             /<meta[^>]+property="og:title"[^>]+content="([^"]+)"/i,
             /<meta[^>]+content="([^"]+)"[^>]+property="og:title"/i
-          ]),
-          desc: pick([
+          ])),
+          desc: decodeHtml(pick([
             /<meta[^>]+property="og:description"[^>]+content="([^"]+)"/i,
             /<meta[^>]+content="([^"]+)"[^>]+property="og:description"/i
-          ]),
+          ])),
           finalPathname: pathname
         });
       });
     });
-    req.on("timeout", () => { req.destroy(); resolve(null); });
-    req.on("error", () => resolve(null));
+    req.on("timeout", () => {
+      logErr("OG", `Timeout on ${pathname}${search||""}`);
+      req.destroy(); resolve(null);
+    });
+    req.on("error", (e) => {
+      logErr("OG", `Network error on ${pathname}${search||""}: ${e.message}`);
+      resolve(null);
+    });
     req.end();
   });
 }
@@ -387,9 +459,15 @@ async function scrapeInstagramPost(cleanUrl) {
   let pathname = parsedUrl.pathname;
   const isPostUrl = /\/p\/[^/]+/.test(pathname);
 
+  log("OG-SCRAPE", `Starting scrape: ${pathname} isPost=${isPostUrl}`);
+
   // Fetch img_index=1 (posts) or no index (reels/stories)
   const first = await fetchOgSingle(pathname, isPostUrl ? "?img_index=1" : "");
-  if (!first || (!first.image && !first.video)) return null;
+  if (!first || (!first.image && !first.video)) {
+    logErr("OG-SCRAPE", `No og:image/video found for ${pathname}. first=${JSON.stringify(first)}`);
+    return null;
+  }
+  log("OG-SCRAPE", `First OG data: image=${!!first.image} video=${!!first.video} finalPath=${first.finalPathname}`);
 
   // Follow canonical redirect (collab/tagged posts redirect to the owner's URL)
   if (first.finalPathname && first.finalPathname !== pathname) pathname = first.finalPathname;
@@ -415,6 +493,7 @@ async function scrapeInstagramPost(cleanUrl) {
   // CDN URLs for the same underlying image have the same path but different query tokens.
   const second = await fetchOgSingle(pathname, "?img_index=2");
   const isCarousel = !!(second && second.image && cdnPath(second.image) !== cdnPath(first.image));
+  log("OG-SCRAPE", `isCarousel=${isCarousel} (img1_path=${cdnPath(first.image||"").slice(-30)} img2_path=${cdnPath(second?.image||"").slice(-30)})`);
 
   if (!isCarousel) {
     const mediaUrl = first.video || first.image;
@@ -469,6 +548,7 @@ async function scrapeInstagramPost(cleanUrl) {
     }
   }
 
+  log("OG-SCRAPE", `Carousel complete: ${items.length} items`);
   return {
     type: "carousel",
     items,
@@ -598,57 +678,72 @@ function buildInstagramResponse(data, cleanUrl) {
 app.get("/api/instagram", metaLimiter, async (req, res) => {
   const { url } = req.query;
   if (!url) return res.status(400).json({ error: "Missing URL" });
-  if (!isInstagramUrl(url)) return res.status(400).json({ error: "Invalid Instagram URL. Please paste an Instagram link." });
+  if (!isInstagramUrl(url)) {
+    logErr("IG", `Invalid URL rejected: ${url}`);
+    return res.status(400).json({ error: "Invalid Instagram URL. Please paste an Instagram link." });
+  }
 
   const cleanUrl = url.trim();
+  log("IG", `→ ${cleanUrl}`);
 
-  // Return cached metadata immediately — avoids duplicate fetches for the same post
+  // Detect URL type for logging
+  const isProfileUrl = isInstagramProfileUrl(cleanUrl);
+  const isPostUrl    = /\/p\/[^/]+/.test(cleanUrl);
+  const isReelUrl    = /\/reel\/[^/]+/.test(cleanUrl);
+  const isStoryUrl   = /\/stories\//.test(cleanUrl);
+  const urlType      = isProfileUrl ? "PROFILE" : isPostUrl ? "POST" : isReelUrl ? "REEL" : isStoryUrl ? "STORY" : "UNKNOWN";
+  log("IG", `URL type: ${urlType}`);
+
+  // Cache hit
   const cached = metaCacheGet(cleanUrl);
   if (cached) {
-    console.log("[cache hit]", cleanUrl);
+    log("IG", `Cache hit for ${urlType}: ${cleanUrl}`);
     return res.json(cached);
   }
 
-  // Profile URLs → DP scraper (yt-dlp can't fetch profile pictures)
-  if (isInstagramProfileUrl(cleanUrl)) {
+  // ── PROFILE ──────────────────────────────────────────────────
+  if (isProfileUrl) {
+    log("IG", `Extractor: OG_PROFILE (facebookexternalhit UA)`);
     return fetchInstagramDP(cleanUrl, res);
   }
 
-  // For every non-profile Instagram URL, try OG scraping FIRST for /p/ posts
-  // (yt-dlp is rate-limited on posts; OG scraping is faster and more reliable).
-  // For /reel/ and /stories/, fall through to yt-dlp which handles them well.
-  const isPostUrl = /\/p\/[^/]+/.test(cleanUrl);
-
+  // ── POST (/p/) ────────────────────────────────────────────────
+  // yt-dlp is rate-limited on /p/ posts; OG scraping is the primary path.
   if (isPostUrl) {
-    // OG scraping is the primary path for /p/ posts — yt-dlp is too unreliable
+    log("IG", `Extractor: OG_POST (img_index iteration)`);
     try {
-      const cached2 = await scrapeInstagramPostCached(cleanUrl, res);
-      if (cached2 !== null) return; // response already sent
+      const result = await scrapeInstagramPostCached(cleanUrl, res);
+      if (result !== null) log("IG", `POST done: type=${result.type} items=${result.item_count||1}`);
     } catch (e) {
-      console.error("OG scrape error for /p/ post:", e.message);
+      logErr("IG", `OG POST scrape threw: ${e.message}`);
       if (!res.headersSent) res.status(500).json({ error: "Failed to fetch this post. It may be private or unavailable." });
     }
     return;
   }
 
+  // ── REEL / STORY / IGTV — use yt-dlp with OG fallback ────────
   if (!fs.existsSync(YTDLP_PATH)) {
-    // No yt-dlp — fall back to OG scraping for reels too
+    log("IG", `yt-dlp not found at ${YTDLP_PATH} — falling back to OG scraping for ${urlType}`);
     try {
       await scrapeInstagramPostCached(cleanUrl, res);
     } catch (e) {
-      if (!res.headersSent) res.status(503).json({ error: "Media extraction service unavailable. Please try again later." });
+      logErr("IG", `OG fallback failed: ${e.message}`);
+      if (!res.headersSent) res.status(503).json({ error: "Media extraction unavailable. Please try again later." });
     }
     return;
   }
 
-  // Reels, IGTV, Stories → yt-dlp (60s timeout; works well for these)
+  log("IG", `Extractor: YTDLP (${urlType}, 60s timeout)`);
   const metaCmd = `"${YTDLP_PATH}" -J --no-warnings --extractor-retries 2 --socket-timeout 15 "${cleanUrl.replace(/"/g, '\\"')}"`;
 
   exec(metaCmd, { timeout: 60000, maxBuffer: 30 * 1024 * 1024 }, async (err, stdout, stderr) => {
     if (err) {
-      console.error("IG yt-dlp failed, falling back to OG scraping:", (err.message || "").split("\n")[0]);
-      try { await scrapeInstagramPostCached(cleanUrl, res); } catch (e) {
-        console.error("OG scrape error:", e.message);
+      logErr("IG", `yt-dlp failed (${urlType}): ${(err.message || "").split("\n")[0]}`);
+      log("IG", `Falling back to OG scraping for ${urlType}`);
+      try {
+        await scrapeInstagramPostCached(cleanUrl, res);
+      } catch (e) {
+        logErr("IG", `OG fallback also failed: ${e.message}`);
         if (!res.headersSent) res.status(500).json({ error: "Failed to fetch this post. It may be private or unavailable." });
       }
       return;
@@ -658,12 +753,15 @@ app.get("/api/instagram", metaLimiter, async (req, res) => {
     if (jsonStart > 0) raw = raw.slice(jsonStart);
     try {
       const data = JSON.parse(raw);
+      log("IG", `yt-dlp success: type=${data._type||"single"} uploader="${data.uploader||"?"}" ext=${data.ext||"?"}`);
       const result = buildInstagramResponse(data, cleanUrl);
       metaCacheSet(cleanUrl, result);
       res.json(result);
-    } catch {
-      console.error("IG JSON parse failed, falling back to OG scraping");
-      try { await scrapeInstagramPostCached(cleanUrl, res); } catch (e) {
+    } catch (parseErr) {
+      logErr("IG", `JSON parse failed: ${parseErr.message}. Falling back to OG scraping.`);
+      try {
+        await scrapeInstagramPostCached(cleanUrl, res);
+      } catch (e) {
         if (!res.headersSent) res.status(500).json({ error: "Failed to parse media response. Please try again." });
       }
     }
