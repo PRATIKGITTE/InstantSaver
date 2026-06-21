@@ -13,13 +13,35 @@
   gap: 10px;
 }
 
+/* Input wrapper holds the text input + paste/clear icon button */
+.input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
 .input-box {
   width: 100%;
-  padding: 12px 14px;
+  padding: 12px 44px 12px 14px;
   border-radius: 12px;
   border: 1px solid #e5e7eb;
   font-size: 16px;
 }
+
+.paste-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+  color: #6b7280;
+  border-radius: 6px;
+  transition: color 0.15s;
+}
+.paste-btn:hover { color: var(--primary); }
+.clear-btn { font-size: 13px; }
 
 .btn {
   padding: 12px 18px;
@@ -27,14 +49,18 @@
   border-radius: 12px;
   cursor: pointer;
   font-weight: 600;
+  transition: filter 0.15s;
 }
 
 .btn.primary { background: var(--primary); color: white; }
-.btn.primary:hover { filter: brightness(0.95); }
+.btn.primary:hover { filter: brightness(0.92); }
 
 .btn.success { background: var(--success); color: white; }
-.btn.success:hover { filter: brightness(0.95); }
+.btn.success:hover { filter: brightness(0.92); }
 
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── Preview wrapper ── */
 .media-preview {
   margin-top: 16px;
   display: flex;
@@ -47,10 +73,192 @@
   max-height: 520px;
   border-radius: 14px;
   box-shadow: 0 8px 22px rgba(0,0,0,.12);
+  object-fit: contain;
+}
+
+.video-placeholder {
+  width: 100%;
+  text-align: center;
+}
+
+.placeholder-text {
+  color: #6b7280;
+  font-size: 14px;
+  margin-top: 10px;
 }
 
 .download-container {
   display: flex;
   justify-content: center;
   margin-top: 14px;
+}
+
+/* ── Scraped fallback note ── */
+.scraped-note {
+  font-size: 13px;
+  color: #d97706;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 7px 12px;
+  margin: 0 0 10px;
+  align-self: stretch;
+  line-height: 1.5;
+}
+
+/* ── Username ── */
+.username {
+  color: #374151;
+  font-size: 14px;
+  margin: 0 0 10px;
+  align-self: flex-start;
+}
+
+/* ── Caption ── */
+.media-caption {
+  color: #6b7280;
+  font-size: 14px;
+  text-align: left;
+  margin: 10px 0 0;
+  padding: 0 4px;
+  line-height: 1.6;
+  align-self: flex-start;
+  width: 100%;
+}
+
+.carousel-caption {
+  margin-top: 12px;
+}
+
+/* ── Carousel ── */
+.carousel-wrapper {
+  width: 100%;
+}
+
+.carousel-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 600px) {
+  .carousel-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.carousel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.carousel-thumb-box {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f3f4f6;
+}
+
+.carousel-thumb-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+  display: block;
+}
+
+.carousel-no-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.carousel-index-badge {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  background: rgba(0,0,0,0.55);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+
+.carousel-type-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 14px;
+}
+
+.carousel-dl-btn {
+  width: 100%;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.download-all-btn {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  font-size: 15px;
+  padding: 13px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+/* ── Profile / DP ── */
+.dp-preview-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.dp-preview-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  background: #f9fafb;
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.dp-image {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #6366f1;
+  box-shadow: 0 8px 24px rgba(99,102,241,0.2);
+}
+
+.dp-info {
+  text-align: center;
+}
+
+.dp-display-name {
+  font-weight: 700;
+  font-size: 16px;
+  color: #111827;
+  margin: 0 0 4px;
+}
+
+.dp-username {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
 }

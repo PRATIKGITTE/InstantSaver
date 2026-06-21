@@ -12,24 +12,36 @@ import InstagramInfo from "./components/InstagramInfo";
 import YouTubeInfo from "./components/YouTubeInfo";
 
 const TABS = [
-  { id: "instagram", label: "Instagram" },
-  { id: "youtube", label: "YouTube" }
+  { id: "instagram", labelKey: "tab_instagram" },
+  { id: "youtube", labelKey: "tab_youtube" }
 ];
 
 const IG_TYPES = [
-  { id: "auto", label: "All (Reels/Posts/IGTV)" },
-  { id: "reel", label: "Reels" },
-  { id: "post", label: "Post (Photo/Video)" },
-  { id: "igtv", label: "IGTV" },
-  { id: "carousel", label: "Carousel (first item only)" }
+  { id: "auto", labelKey: "subtab_all", icon: "✦" },
+  { id: "reel", labelKey: "subtab_reels", icon: "🎬" },
+  { id: "post", labelKey: "subtab_post", icon: "🖼️" },
+  { id: "stories", labelKey: "subtab_stories", icon: "📖" },
+  { id: "igtv", labelKey: "subtab_igtv", icon: "📺" },
+  { id: "carousel", labelKey: "subtab_carousel", icon: "🗂️" }
 ];
 
 const YT_TYPES = [
   { id: "auto", label: "All (Shorts/Live/Long)" },
   { id: "shorts", label: "Shorts" },
-  { id: "live", label: "Live (if available)" },
+  { id: "live", label: "Live" },
   { id: "long", label: "Long Video" }
 ];
+
+function StaticPage({ title, body }) {
+  const { t } = useTranslation();
+  return (
+    <div style={{ maxWidth: 800, margin: "60px auto", padding: "0 20px", lineHeight: 1.8 }}>
+      <h1 style={{ marginBottom: 16 }}>{title}</h1>
+      <p style={{ color: "#374151" }}>{body}</p>
+      <a href="/" style={{ color: "#6366f1", textDecoration: "none", fontWeight: 600 }}>{t("back_to_home", "← Back to Home")}</a>
+    </div>
+  );
+}
 
 // ✅ PERFECT Scroll + Refresh Fix
 function RedirectOnRefresh() {
@@ -73,12 +85,13 @@ export default function App() {
   return (
     <Router>
       <Helmet>
-        <title>{t("app_title", "InstantSaver")} — {t("hero_title", "Online Video Downloader")}</title>
-        <meta name="description" content={t("hero_desc", "Download Instagram Reels/Posts & YouTube Shorts/Live/Long — fast, free, no login.")} />
-        <meta name="keywords" content="instagram downloader, youtube downloader, reels, shorts, video download" />
+        <title>{t("app_title", "InstantSaver")} — {t("page_title", "Instagram Downloader: Reels, Photos, Carousel Free")}</title>
+        <meta name="description" content={t("hero_desc", "Download Instagram Reels, Photos, and Carousel posts in HD — no watermark, no login. Free & fast on iPhone, Android, and PC.")} />
+        <meta name="keywords" content="instagram downloader, instagram reels downloader, download instagram photos, carousel downloader, free instagram downloader, no watermark" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="alternate" hrefLang="en" href="/" />
         <link rel="alternate" hrefLang="hi" href="/hi" />
+        <link rel="alternate" hrefLang="id" href="/id" />
       </Helmet>
 
       <Routes>
@@ -99,17 +112,30 @@ export default function App() {
                   aria-label="Language"
                   value={i18n.language}
                   onChange={(e) => i18n.changeLanguage(e.target.value)}
-                  style={{ marginLeft: 12, padding: 6, borderRadius: 6, border: "1px solid #ddd" }}
+                  style={{ marginLeft: 12, padding: "6px 8px", borderRadius: 6, border: "1px solid #ddd", fontSize: 14 }}
                 >
-                  <option value="en">English</option>
-                  <option value="hi">हिंदी</option>
+                  <option value="en">🌐 English</option>
+                  <option value="hi">🇮🇳 हिंदी</option>
+                  <option value="id">🇮🇩 Indonesia</option>
+                  <option value="th">🇹🇭 ภาษาไทย</option>
+                  <option value="es">🇪🇸 Español</option>
                 </select>
               </nav>
             </header>
 
             <section className="hero">
-              <h1>{t("hero_title", "Online Video Downloader")}</h1>
-              <p>{t("hero_desc", "Download Instagram Reels/Posts & YouTube Shorts/Live/Long — fast, free, no login.")}</p>
+              <h1>{t("hero_title", "Instagram Downloader — Reels, Photos & Carousel")}</h1>
+              <p>{t("hero_desc", "Download Instagram Reels, Photos, Carousel posts & YouTube videos — HD quality, no watermark, free.")}</p>
+
+              {/* Supported formats strip */}
+              <div className="formats-strip">
+                <span className="format-badge">🎬 {t("subtab_reels","Reels")}</span>
+                <span className="format-badge">🖼️ {t("subtab_post","Posts")}</span>
+                <span className="format-badge">🗂️ {t("subtab_carousel","Carousel")}</span>
+                <span className="format-badge">📖 {t("subtab_stories","Stories")}</span>
+                <span className="format-badge">📺 IGTV</span>
+                <span className="format-badge">👤 {t("profile_picture","Profile DP")}</span>
+              </div>
 
               {/* MAIN TABS */}
               <div className="tabs">
@@ -119,7 +145,7 @@ export default function App() {
                     className={`tab ${platform === tTab.id ? "active" : ""}`}
                     onClick={() => setPlatform(tTab.id)}
                   >
-                    {tTab.label}
+                    {t(tTab.labelKey, tTab.labelKey)}
                   </button>
                 ))}
               </div>
@@ -127,7 +153,7 @@ export default function App() {
               {/* INSTAGRAM SECTION */}
               {platform === "instagram" && (
                 <div>
-                  {/* ✅ MOBILE PERFECT SUBTABS - Horizontal scroll */}
+                  {/* SUBTABS */}
                   <div className="subtabs instagram-subtabs">
                     {IG_TYPES.map((tObj) => (
                       <button
@@ -135,7 +161,7 @@ export default function App() {
                         className={`subtab ${igType === tObj.id ? "active" : ""}`}
                         onClick={() => setIgType(tObj.id)}
                       >
-                        {tObj.label}
+                        {tObj.icon} {t(tObj.labelKey, tObj.labelKey)}
                       </button>
                     ))}
                   </div>
@@ -245,6 +271,12 @@ export default function App() {
                 <img src="/logo.png" className="logo small" alt={t("app_title", "InstantSaver")} />
                 <strong>{t("app_title", "InstantSaver")}</strong>
               </div>
+              <nav className="footer-links">
+                <a href="/privacy">{t("privacy_policy", "Privacy Policy")}</a>
+                <a href="/terms">{t("terms_of_service", "Terms of Service")}</a>
+                <a href="/contact">{t("nav_contact", "Contact")}</a>
+                <a href="#faq">{t("nav_faq", "FAQ")}</a>
+              </nav>
               <p>© {new Date().getFullYear()} {t("app_title", "InstantSaver")}. All rights reserved.</p>
               <p className="disclaimer">{t("footer_disclaimer", "Disclaimer: All logos and trademarks belong to their respective owners. Downloads are fetched directly from public CDNs. Please respect platform terms.")}</p>
             </footer>
@@ -254,6 +286,8 @@ export default function App() {
         <Route path="/features" element={<><RedirectOnRefresh /><Features /></>} />
         <Route path="/faq" element={<><RedirectOnRefresh /><FAQ /></>} />
         <Route path="/contact" element={<><RedirectOnRefresh /><Contact /></>} />
+        <Route path="/privacy" element={<><RedirectOnRefresh /><StaticPage title="Privacy Policy" body="InstantSaver does not store, log, or share any user data or downloaded URLs. All processing happens server-side and no personal information is collected. Downloads are fetched directly from public CDNs. By using this service you agree to respect the terms of the platforms you download from." /></>} />
+        <Route path="/terms" element={<><RedirectOnRefresh /><StaticPage title="Terms of Service" body="InstantSaver is provided free of charge for personal, non-commercial use. You agree to use it only to download publicly accessible content for personal offline use. Redistribution or commercial use of downloaded content without the original creator's permission is prohibited. We reserve the right to suspend service at any time without notice." /></>} />
         <Route path="*" element={<RedirectOnRefresh />} />
       </Routes>
     </Router>

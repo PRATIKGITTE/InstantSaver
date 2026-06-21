@@ -270,10 +270,88 @@ body {
   font-size: 14px;
 }
 
+/* Footer links */
+.footer-links {
+  margin: 12px 0;
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.footer-links a {
+  color: var(--brand);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.footer-links a:hover {
+  text-decoration: underline;
+}
+
 /* Accessibility */
 .input-box:focus, .btn:focus, .tab:focus, .subtab:focus, .clear-preview:focus {
   outline: 3px solid rgba(99,102,241,0.3);
   outline-offset: 2px;
 }
 
-/* ✅ NO MOBILE MEDIA QUERIES NEEDED - Old CSS handles perfectly! */
+/* ── Supported formats strip ── */
+.formats-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin: 12px 0 20px;
+}
+
+.format-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255,255,255,0.85);
+  border: 1px solid #e0e3ff;
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+/* ── Loading spinner inside button ── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+/* Mobile nav */
+@media (max-width: 600px) {
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  .hero h1 {
+    font-size: 26px;
+  }
+  .formats-strip {
+    gap: 6px;
+  }
+  .format-badge {
+    font-size: 12px;
+    padding: 4px 10px;
+  }
+}

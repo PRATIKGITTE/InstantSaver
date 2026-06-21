@@ -32,3 +32,136 @@
 .info-section strong {
   color: var(--text);
 }
+
+/* ── FAQ Accordion ── */
+.faq-accordion {
+  margin-top: 8px;
+}
+
+.faq-accordion-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.faq-accordion-btn {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: #f9fafb;
+  border: none;
+  padding: 14px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.faq-accordion-btn:hover {
+  background: #f1f5ff;
+}
+
+.faq-chevron {
+  font-size: 11px;
+  flex-shrink: 0;
+  color: var(--brand);
+}
+
+.faq-accordion-answer {
+  margin: 0;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.65;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* ── Feature cards grid ── */
+.ig-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin: 12px 0 20px;
+}
+
+.ig-feature-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #f8f9ff;
+  border: 1px solid #e0e3ff;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.ig-feature-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ── Step-by-step guide ── */
+.ig-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0 20px;
+}
+
+.ig-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.55;
+}
+
+.ig-step-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--brand, #6366f1);
+  color: white;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+/* ── Countries list ── */
+.ig-countries {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0;
+}
+
+.ig-countries li {
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 14px;
+}
+
+.ig-countries li:last-child {
+  border-bottom: none;
+}
+
+@media (max-width: 600px) {
+  .ig-feature-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
