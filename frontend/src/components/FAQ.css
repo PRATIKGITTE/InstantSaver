@@ -14,7 +14,7 @@
   gap: 14px;
 }
 .faq-item {
-  background: #ffffffdd;
+  background: var(--card-bg);
   border-radius: 14px;
   padding: 16px;
   box-shadow: 0 8px 22px rgba(0,0,0,.06);
@@ -25,7 +25,7 @@
 }
 .faq-item p {
   margin: 0;
-  color: #374151;
+  color: var(--text-secondary);
 }
 /* ✅ CENTER FAQ H1 + Intro */
 .faq h1 {
@@ -38,6 +38,57 @@
   max-width: 600px;
   margin: 0 auto 2rem auto;
   font-size: 1.1rem;
-  color: #64748b;
+  color: var(--muted);
   line-height: 1.6;
+}
+
+/* ── Accordion FAQ (replaces the old static grid) ── */
+.faq-accordion {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.faq-accordion-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  background: var(--card-bg);
+}
+
+.faq-accordion-btn {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: var(--card-bg-soft);
+  border: none;
+  padding: 14px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.faq-accordion-btn:hover {
+  background: var(--border);
+}
+
+.faq-chevron {
+  font-size: 11px;
+  flex-shrink: 0;
+  color: var(--brand);
+}
+
+.faq-accordion-answer {
+  margin: 0;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  background: var(--card-bg);
+  border-top: 1px solid var(--border);
 }

@@ -1,21 +1,59 @@
-import React from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet";
+import { SUPPORTED_LOCALES, parseLocalePath, canonicalUrl, localizedHref } from "../i18nRoutes";
 import "./FAQ.css";
 
+// Merged from two previously-separate, overlapping FAQ lists (a 6-question grid here and
+// a 10-question accordion duplicated inside InstagramInfo.js) into one accordion — the
+// ig_faq_* set is the more specific, Instagram-feature-focused one (DP, carousel, legality,
+// speed), kept in full; only the two faq_q* questions it didn't already cover (the
+// preview/download mechanics and the no-storage privacy point) were folded in alongside it.
+const FAQ_ITEMS = [
+  { q: "ig_faq_q1", a: "ig_faq_a1" },
+  { q: "ig_faq_q2", a: "ig_faq_a2" },
+  { q: "ig_faq_q3", a: "ig_faq_a3" },
+  { q: "ig_faq_q4", a: "ig_faq_a4" },
+  { q: "ig_faq_q5", a: "ig_faq_a5" },
+  { q: "ig_faq_q6", a: "ig_faq_a6" },
+  { q: "ig_faq_q7", a: "ig_faq_a7" },
+  { q: "ig_faq_q8", a: "ig_faq_a8" },
+  { q: "ig_faq_q9", a: "ig_faq_a9" },
+  { q: "ig_faq_q10", a: "ig_faq_a10" },
+  { q: "faq_q2_title", a: "faq_q2_text" },
+  { q: "faq_q6_title", a: "faq_q6_text" },
+];
+
+function FaqAccordionItem({ q, a, defaultOpen }) {
+  const [open, setOpen] = useState(!!defaultOpen);
+  return (
+    <div className="faq-accordion-item">
+      <button className="faq-accordion-btn" onClick={() => setOpen(!open)} aria-expanded={open}>
+        <span>{q}</span>
+        <span className="faq-chevron">{open ? "▲" : "▼"}</span>
+      </button>
+      {open && <p className="faq-accordion-answer">{a}</p>}
+    </div>
+  );
+}
+
 export default function FAQ() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const location = useLocation();
+  const { lang, rest } = parseLocalePath(location.pathname);
 
-  // ✅ Show Home button ONLY on /faq route (not homepage #faq)
-  const showHomeButton = location.pathname === "/faq";
+  // ✅ Show Home button ONLY on the standalone /faq (or /hi/faq, etc.) route, not the
+  // homepage's embedded #faq section.
+  const showHomeButton = rest === "/faq";
+  // This component renders standalone (its own page, needs an <h1>) or embedded inside
+  // the homepage (which already has its own <h1> in the hero) — using <h1> in both
+  // cases would create two <h1>s on the homepage, and jumping straight to <h3> for the
+  // FAQ items (as this used to do unconditionally) skips a heading level, which fails
+  // accessibility's heading-order check either way.
+  const TitleTag = showHomeButton ? "h1" : "h2";
 
-  // ✅ FIXED: Real domain URLs
-  const hreflangs = [
-    { lang: "en", url: "https://instantsaver.in/" },
-    { lang: "hi", url: "https://instantsaver.in/hi" },
-  ];
+  const resolvedItems = FAQ_ITEMS.map((item) => ({ q: t(item.q, item.q), a: t(item.a, item.a) }));
 
   return (
     <>
@@ -28,27 +66,53 @@ export default function FAQ() {
               <span>InstantSaver</span>
             </div>
             <nav className="links">
-              <a href="/">← Home</a>
+              <a href={localizedHref("/", lang)}>← {t("back_to_home_short", "Home")}</a>
             </nav>
           </header>
         </div>
       )}
 
-      <Helmet>
-        <title>InstantSaver™ – Instagram & YouTube Video Downloader (Reels, Posts, Shorts)</title>
-        <meta
-          name="description"
-          content="Download Instagram Reels, Posts, Carousels & YouTube Shorts in HD. Fast, secure & no login required."
-        />
-        <meta
-          name="keywords"
-          content="instantsaver, instagram downloader, reels downloader, youtube downloader, shorts downloader"
-        />
-        <meta property="og:title" content="InstantSaver™ – Instagram Reels & YouTube Downloader" />
-        <meta property="og:description" content="Download Instagram Reels, Posts & YouTube videos in HD quality instantly. Preview before download." />
-        <meta property="og:image" content="https://instantsaver.in/og-cover.png" />
-        <meta property="og:url" content="https://instantsaver.in/faq" />
+      {/* Title/description/OG/hreflang are gated to the standalone /faq route — this
+          component is ALSO embedded on the homepage (inside <section id="faq">), and
+          declaring them unconditionally meant they fought the homepage's own
+          HomeSeoTags for the single <title> element ("last writer wins" on that node)
+          and appended a second, incomplete hreflang set alongside it.
+          NOTE: this MUST be its own separate <Helmet>, not a Fragment conditionally
+          rendered *inside* one shared Helmet below — this version of react-helmet only
+          looks for tag elements as DIRECT children and doesn't traverse into a nested
+          Fragment, so a `{cond && <>...</>}` block inside <Helmet> gets silently
+          ignored entirely (confirmed live: title/canonical never applied at all). */}
+      {showHomeButton && (
+        <Helmet>
+          <title>{t("faq_page_title", "InstantSaver™ – Instagram & YouTube Video Downloader (Reels, Posts, Shorts)")}</title>
+          <meta
+            name="description"
+            content={t("faq_page_meta_desc", "Download Instagram Reels, Posts, Carousels & YouTube Shorts in HD. Fast, secure & no login required.")}
+          />
+          <meta
+            name="keywords"
+            content="instantsaver, instagram downloader, reels downloader, youtube downloader, shorts downloader"
+          />
+          <link rel="canonical" href={canonicalUrl("/faq", lang)} />
+          <meta property="og:title" content={t("faq_page_title", "InstantSaver™ – Instagram & YouTube Video Downloader (Reels, Posts, Shorts)")} />
+          <meta property="og:description" content={t("faq_page_meta_desc", "Download Instagram Reels, Posts, Carousels & YouTube Shorts in HD. Fast, secure & no login required.")} />
+          <meta property="og:image" content="https://instantsaver.in/og-cover.png" />
+          <meta property="og:url" content={canonicalUrl("/faq", lang)} />
+          <link rel="alternate" hrefLang="x-default" href={canonicalUrl("/faq", null)} />
+          <link rel="alternate" hrefLang="en" href={canonicalUrl("/faq", null)} />
+          {SUPPORTED_LOCALES.map((l) => (
+            <link key={l} rel="alternate" hrefLang={l} href={canonicalUrl("/faq", l)} />
+          ))}
+        </Helmet>
+      )}
 
+      <Helmet>
+        {/* FAQPage JSON-LD stays unconditional (renders on both standalone /faq and the
+            homepage embed) — multiple JSON-LD scripts can coexist fine, it's not a
+            single-node/competing-tag situation like title or canonical. Generated from
+            the SAME resolvedItems the page actually renders, in the current language,
+            instead of a separate hand-maintained list that could (and did) drift out of
+            sync with the real questions shown on the page. */}
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
@@ -64,103 +128,25 @@ export default function FAQ() {
           {JSON.stringify({
             "@context": "https://schema.org",
             "@type": "FAQPage",
-            "mainEntity": [
-              {
-                "@type": "Question",
-                "name": "Download Instagram Reels",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "1. Copy Instagram Reel/Post URL\n2. Paste in InstantSaver\n3. Preview (with audio)\n4. Click Download (HD quality)\nNo login or watermark required."
-                }
-              },
-              {
-                "@type": "Question",
-                "name": "Mobile compatibility",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "Works perfectly on Android, iPhone, tablets, and desktop browsers."
-                }
-              },
-              {
-                "@type": "Question",
-                "name": "Safe and free",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "100% free and safe. No login, no data collection, no watermarks, no limits."
-                }
-              },
-              {
-                "@type": "Question",
-                "name": "YouTube Shorts support",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "Supports YouTube Shorts and regular videos."
-                }
-              },
-              {
-                "@type": "Question",
-                "name": "Video quality",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "HD quality (up to 720p) optimized for fast download and compatibility."
-                }
-              },
-              {
-                "@type": "Question",
-                "name": "Download troubleshooting",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "Private posts require login. Try public Reels/Posts or wait 5 minutes and retry."
-                }
-              }
-            ]
+            "mainEntity": resolvedItems.map((item) => ({
+              "@type": "Question",
+              "name": item.q,
+              "acceptedAnswer": { "@type": "Answer", "text": item.a }
+            }))
           })}
         </script>
-
-        {hreflangs.map((h) => (
-          <link key={h.lang} rel="alternate" hrefLang={h.lang} href={h.url} />
-        ))}
-        <link rel="alternate" hrefLang="x-default" href="https://instantsaver.in/" />
       </Helmet>
 
       <section className="faq" aria-labelledby="faq-heading">
-        <h1>InstantSaver™ – Download Videos Instantly</h1>
+        <TitleTag>{t("faq_section_heading", "Frequently Asked Questions")}</TitleTag>
         <p className="faq-intro">
-          Everything you need to know about downloading Instagram Reels, Posts & YouTube videos.
+          {t("faq_intro", "Everything you need to know about downloading Instagram Reels, Posts & YouTube videos.")}
         </p>
 
-        <div className="ad-banner" role="complementary" aria-label={t("ad_banner_text")}>
-          <div className="ad-inner">
-            <strong>{t("ad_banner_text")}</strong>
-            <div className="ad-placeholder">Your Ad Here</div>
-          </div>
-        </div>
-
-        <div className="faq-grid">
-          <div className="faq-item">
-            <h3>{t("faq_q1_title")}</h3>
-            <p>{t("faq_q1_text")}</p>
-          </div>
-          <div className="faq-item">
-            <h3>{t("faq_q2_title")}</h3>
-            <p>{t("faq_q2_text")}</p>
-          </div>
-          <div className="faq-item">
-            <h3>{t("faq_q3_title")}</h3>
-            <p>{t("faq_q3_text")}</p>
-          </div>
-          <div className="faq-item">
-            <h3>{t("faq_q4_title")}</h3>
-            <p>{t("faq_q4_text")}</p>
-          </div>
-          <div className="faq-item">
-            <h3>{t("faq_q5_title")}</h3>
-            <p>{t("faq_q5_text")}</p>
-          </div>
-          <div className="faq-item">
-            <h3>{t("faq_q6_title")}</h3>
-            <p>{t("faq_q6_text")}</p>
-          </div>
+        <div className="faq-accordion">
+          {resolvedItems.map((item, i) => (
+            <FaqAccordionItem key={i} q={item.q} a={item.a} />
+          ))}
         </div>
       </section>
     </>

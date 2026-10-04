@@ -2,10 +2,12 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
 
-  <!-- ── Core pages ── -->
+  <!-- ── Homepage — one entry per language, each listing the full alternate set
+       (Google's recommended pattern: every URL in an hreflang group repeats the
+       same set of alternates, not just the default one). ── -->
   <url>
     <loc>https://instantsaver.in/</loc>
-    <lastmod>2026-06-21</lastmod>
+    <lastmod>2026-10-04</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://instantsaver.in/" />
@@ -17,22 +19,247 @@
   </url>
 
   <url>
+    <loc>https://instantsaver.in/hi</loc>
+    <lastmod>2026-10-04</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://instantsaver.in/" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://instantsaver.in/hi" />
+    <xhtml:link rel="alternate" hreflang="id" href="https://instantsaver.in/id" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://instantsaver.in/th" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://instantsaver.in/es" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://instantsaver.in/" />
+  </url>
+
+  <url>
+    <loc>https://instantsaver.in/id</loc>
+    <lastmod>2026-10-04</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://instantsaver.in/" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://instantsaver.in/hi" />
+    <xhtml:link rel="alternate" hreflang="id" href="https://instantsaver.in/id" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://instantsaver.in/th" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://instantsaver.in/es" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://instantsaver.in/" />
+  </url>
+
+  <url>
+    <loc>https://instantsaver.in/th</loc>
+    <lastmod>2026-10-04</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://instantsaver.in/" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://instantsaver.in/hi" />
+    <xhtml:link rel="alternate" hreflang="id" href="https://instantsaver.in/id" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://instantsaver.in/th" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://instantsaver.in/es" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://instantsaver.in/" />
+  </url>
+
+  <url>
+    <loc>https://instantsaver.in/es</loc>
+    <lastmod>2026-10-04</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://instantsaver.in/" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://instantsaver.in/hi" />
+    <xhtml:link rel="alternate" hreflang="id" href="https://instantsaver.in/id" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://instantsaver.in/th" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://instantsaver.in/es" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://instantsaver.in/" />
+  </url>
+
+  <!-- ── FAQ — genuinely translated (not just UI chrome), one entry per language ── -->
+  <url>
     <loc>https://instantsaver.in/faq</loc>
-    <lastmod>2026-06-21</lastmod>
+    <lastmod>2026-10-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://instantsaver.in/faq" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://instantsaver.in/hi/faq" />
+    <xhtml:link rel="alternate" hreflang="id" href="https://instantsaver.in/id/faq" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://instantsaver.in/th/faq" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://instantsaver.in/es/faq" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://instantsaver.in/faq" />
   </url>
-
   <url>
-    <loc>https://instantsaver.in/features</loc>
-    <lastmod>2026-06-21</lastmod>
+    <loc>https://instantsaver.in/hi/faq</loc>
+    <lastmod>2026-10-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://instantsaver.in/faq" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://instantsaver.in/hi/faq" />
+    <xhtml:link rel="alternate" hreflang="id" href="https://instantsaver.in/id/faq" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://instantsaver.in/th/faq" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://instantsaver.in/es/faq" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://instantsaver.in/faq" />
+  </url>
+  <url>
+    <loc>https://instantsaver.in/id/faq</loc>
+    <lastmod>2026-10-04</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://instantsaver.in/faq" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://instantsaver.in/hi/faq" />
+    <xhtml:link rel="alternate" hreflang="id" href="https://instantsaver.in/id/faq" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://instantsaver.in/th/faq" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://instantsaver.in/es/faq" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://instantsaver.in/faq" />
+  </url>
+  <url>
+    <loc>https://instantsaver.in/th/faq</loc>
+    <lastmod>2026-10-04</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://instantsaver.in/faq" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://instantsaver.in/hi/faq" />
+    <xhtml:link rel="alternate" hreflang="id" href="https://instantsaver.in/id/faq" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://instantsaver.in/th/faq" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://instantsaver.in/es/faq" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://instantsaver.in/faq" />
+  </url>
+  <url>
+    <loc>https://instantsaver.in/es/faq</loc>
+    <lastmod>2026-10-04</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://instantsaver.in/faq" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://instantsaver.in/hi/faq" />
+    <xhtml:link rel="alternate" hreflang="id" href="https://instantsaver.in/id/faq" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://instantsaver.in/th/faq" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://instantsaver.in/es/faq" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://instantsaver.in/faq" />
   </url>
 
+  <!-- ── Features — genuinely translated ── -->
+  <url>
+    <loc>https://instantsaver.in/features</loc>
+    <lastmod>2026-10-04</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://instantsaver.in/features" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://instantsaver.in/hi/features" />
+    <xhtml:link rel="alternate" hreflang="id" href="https://instantsaver.in/id/features" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://instantsaver.in/th/features" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://instantsaver.in/es/features" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://instantsaver.in/features" />
+  </url>
+  <url>
+    <loc>https://instantsaver.in/hi/features</loc>
+    <lastmod>2026-10-04</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://instantsaver.in/features" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://instantsaver.in/hi/features" />
+    <xhtml:link rel="alternate" hreflang="id" href="https://instantsaver.in/id/features" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://instantsaver.in/th/features" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://instantsaver.in/es/features" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://instantsaver.in/features" />
+  </url>
+  <url>
+    <loc>https://instantsaver.in/id/features</loc>
+    <lastmod>2026-10-04</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://instantsaver.in/features" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://instantsaver.in/hi/features" />
+    <xhtml:link rel="alternate" hreflang="id" href="https://instantsaver.in/id/features" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://instantsaver.in/th/features" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://instantsaver.in/es/features" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://instantsaver.in/features" />
+  </url>
+  <url>
+    <loc>https://instantsaver.in/th/features</loc>
+    <lastmod>2026-10-04</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://instantsaver.in/features" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://instantsaver.in/hi/features" />
+    <xhtml:link rel="alternate" hreflang="id" href="https://instantsaver.in/id/features" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://instantsaver.in/th/features" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://instantsaver.in/es/features" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://instantsaver.in/features" />
+  </url>
+  <url>
+    <loc>https://instantsaver.in/es/features</loc>
+    <lastmod>2026-10-04</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://instantsaver.in/features" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://instantsaver.in/hi/features" />
+    <xhtml:link rel="alternate" hreflang="id" href="https://instantsaver.in/id/features" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://instantsaver.in/th/features" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://instantsaver.in/es/features" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://instantsaver.in/features" />
+  </url>
+
+  <!-- ── Contact — genuinely translated ── -->
   <url>
     <loc>https://instantsaver.in/contact</loc>
-    <lastmod>2026-06-21</lastmod>
+    <lastmod>2026-10-04</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://instantsaver.in/contact" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://instantsaver.in/hi/contact" />
+    <xhtml:link rel="alternate" hreflang="id" href="https://instantsaver.in/id/contact" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://instantsaver.in/th/contact" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://instantsaver.in/es/contact" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://instantsaver.in/contact" />
+  </url>
+  <url>
+    <loc>https://instantsaver.in/hi/contact</loc>
+    <lastmod>2026-10-04</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://instantsaver.in/contact" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://instantsaver.in/hi/contact" />
+    <xhtml:link rel="alternate" hreflang="id" href="https://instantsaver.in/id/contact" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://instantsaver.in/th/contact" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://instantsaver.in/es/contact" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://instantsaver.in/contact" />
+  </url>
+  <url>
+    <loc>https://instantsaver.in/id/contact</loc>
+    <lastmod>2026-10-04</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://instantsaver.in/contact" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://instantsaver.in/hi/contact" />
+    <xhtml:link rel="alternate" hreflang="id" href="https://instantsaver.in/id/contact" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://instantsaver.in/th/contact" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://instantsaver.in/es/contact" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://instantsaver.in/contact" />
+  </url>
+  <url>
+    <loc>https://instantsaver.in/th/contact</loc>
+    <lastmod>2026-10-04</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://instantsaver.in/contact" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://instantsaver.in/hi/contact" />
+    <xhtml:link rel="alternate" hreflang="id" href="https://instantsaver.in/id/contact" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://instantsaver.in/th/contact" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://instantsaver.in/es/contact" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://instantsaver.in/contact" />
+  </url>
+  <url>
+    <loc>https://instantsaver.in/es/contact</loc>
+    <lastmod>2026-10-04</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://instantsaver.in/contact" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://instantsaver.in/hi/contact" />
+    <xhtml:link rel="alternate" hreflang="id" href="https://instantsaver.in/id/contact" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://instantsaver.in/th/contact" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://instantsaver.in/es/contact" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://instantsaver.in/contact" />
+  </url>
+
+  <!-- ── About, Privacy, Terms — English-only content, single URL each ── -->
+  <url>
+    <loc>https://instantsaver.in/about</loc>
+    <lastmod>2026-09-12</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>
@@ -51,40 +278,54 @@
     <priority>0.4</priority>
   </url>
 
-  <!-- ── SEO Landing Pages ── -->
+  <!-- ── SEO Landing Pages — English-only content, single URL each ── -->
   <url>
     <loc>https://instantsaver.in/instagram-downloader</loc>
-    <lastmod>2026-06-21</lastmod>
+    <lastmod>2026-10-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.95</priority>
   </url>
 
   <url>
     <loc>https://instantsaver.in/reels-downloader</loc>
-    <lastmod>2026-06-21</lastmod>
+    <lastmod>2026-10-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.95</priority>
   </url>
 
   <url>
     <loc>https://instantsaver.in/youtube-downloader</loc>
-    <lastmod>2026-06-21</lastmod>
+    <lastmod>2026-10-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
     <loc>https://instantsaver.in/profile-picture-downloader</loc>
-    <lastmod>2026-06-21</lastmod>
+    <lastmod>2026-10-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
 
   <url>
     <loc>https://instantsaver.in/carousel-downloader</loc>
-    <lastmod>2026-06-21</lastmod>
+    <lastmod>2026-10-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
+  </url>
+
+  <url>
+    <loc>https://instantsaver.in/stories-downloader</loc>
+    <lastmod>2026-10-04</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <url>
+    <loc>https://instantsaver.in/highlights-downloader</loc>
+    <lastmod>2026-10-04</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
   </url>
 
 </urlset>

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import "./DownloaderForm.css";
 
-const BASE_URL = "https://instantsaver.onrender.com";
+const BASE_URL = process.env.REACT_APP_API_URL || "https://instantsaver.onrender.com";
 
 // ── Progress step labels ──────────────────────────────────
 const PROGRESS_STEPS = ["Fetching media…", "Processing…", "Ready!"];
@@ -18,11 +18,15 @@ export default function DownloaderForm({ platform, igType, ytType }) {
   const [ytQuality, setYtQuality] = useState(720);
 
   const normalizeYouTube = (url) => {
-    let u = url.trim().split("?")[0].replace(/\/$/, "");
-    if (/\/shorts\/([^/]+)/.test(u))
-      return `https://www.youtube.com/watch?v=${u.match(/\/shorts\/([^/]+)/)[1]}`;
-    if (/youtu\.be\/([^/]+)/.test(u))
-      return `https://www.youtube.com/watch?v=${u.match(/youtu\.be\/([^/]+)/)[1]}`;
+    // NOTE: previously did `.split("?")[0]` here, which stripped the ?v=VIDEO_ID
+    // query string off every standard youtube.com/watch?v=... link (the most common
+    // way people share YouTube URLs) before it ever reached the backend — only
+    // /shorts/ and youtu.be links survived. Mirrors the backend's normalizeYouTube().
+    let u = url.trim().replace(/\/$/, "");
+    const shortsMatch = u.match(/\/shorts\/([^/?]+)/);
+    if (shortsMatch) return `https://www.youtube.com/watch?v=${shortsMatch[1]}`;
+    const shortMatch = u.match(/youtu\.be\/([^/?]+)/);
+    if (shortMatch) return `https://www.youtube.com/watch?v=${shortMatch[1]}`;
     return u;
   };
 
@@ -121,8 +125,15 @@ export default function DownloaderForm({ platform, igType, ytType }) {
         </p>
       )}
       {media.caption && (
-        <p className="media-caption carousel-caption">
-          {media.caption.length > 180 ? media.caption.slice(0, 180) + "…" : media.caption}
+        <p className="media-caption carousel-caption">{media.caption}</p>
+      )}
+      {media.total_items > media.item_count && (
+        <p className="carousel-partial-notice">
+          {t(
+            "carousel_partial",
+            "Showing {{count}} of {{total}} items — Instagram limits anonymous access to the rest of this carousel.",
+            { count: media.item_count, total: media.total_items }
+          )}
         </p>
       )}
       <div className="carousel-grid">
@@ -144,7 +155,6 @@ export default function DownloaderForm({ platform, igType, ytType }) {
                     alt={`Item ${item.index}`}
                     className="carousel-thumb-media"
                     loading="lazy"
-                    crossOrigin="anonymous"
                   />
                 )
               ) : item.thumbnail ? (
@@ -159,21 +169,21 @@ export default function DownloaderForm({ platform, igType, ytType }) {
                   {item.type === "video" ? "🎬" : "🖼️"} {item.index}
                 </div>
               )}
-              <span className="carousel-index-badge">{item.index}/{media.item_count}</span>
+              <span className="carousel-index-badge">{item.index}/{media.total_items || media.item_count}</span>
               <span className="carousel-type-badge">{item.type === "video" ? "🎬" : "🖼️"}</span>
             </div>
             <button
               className="btn success carousel-dl-btn"
               onClick={() => triggerDownload(item.download_url)}
             >
-              ↓ {t("btn_download", "Download")} {item.index}
+              {t("btn_download", "Download")} {item.index}
             </button>
           </div>
         ))}
       </div>
       {media.item_count > 1 && (
         <button className="btn primary download-all-btn" onClick={onDownloadAll}>
-          ↓ {t("btn_download_all", "Download All {{count}} Items", { count: media.item_count })}
+          {t("btn_download_all", "Download All {{count}} Items", { count: media.item_count })}
         </button>
       )}
     </div>
@@ -188,7 +198,6 @@ export default function DownloaderForm({ platform, igType, ytType }) {
           alt={`${media.username} profile picture`}
           className="dp-image"
           onError={(e) => { e.target.style.display = "none"; }}
-          crossOrigin="anonymous"
         />
         <div className="dp-info">
           <p className="dp-display-name">{media.display_name || media.username}</p>
@@ -197,7 +206,7 @@ export default function DownloaderForm({ platform, igType, ytType }) {
       </div>
       <div className="download-container">
         <button className="btn success" onClick={onDownload}>
-          ↓ {t("btn_download_dp", "Download Profile Picture")}
+          {t("btn_download_dp", "Download Profile Picture")}
         </button>
       </div>
     </div>
@@ -240,7 +249,7 @@ export default function DownloaderForm({ platform, igType, ytType }) {
       {/* Quality selector */}
       {media.quality_options?.length > 0 && (
         <div className="yt-quality-row">
-          <span className="yt-quality-label">Quality:</span>
+          <span className="yt-quality-label">{t("yt_quality_label", "Quality:")}</span>
           <div className="yt-quality-btns">
             {media.quality_options.map((opt) => (
               <button
@@ -258,11 +267,11 @@ export default function DownloaderForm({ platform, igType, ytType }) {
       {/* Download buttons */}
       <div className="yt-download-row">
         <button className="btn success" onClick={onDownload}>
-          ↓ Download MP4
+          {t("btn_download_mp4", "Download MP4")}
         </button>
         {media.audio_url && (
           <button className="btn yt-audio-btn" onClick={onDownloadAudio}>
-            ♪ Audio M4A
+            ♪ {t("btn_download_audio", "Audio M4A")}
           </button>
         )}
       </div>
@@ -338,7 +347,11 @@ export default function DownloaderForm({ platform, igType, ytType }) {
                 </p>
               )}
 
-              {media.scraped && (
+              {media.total_items > 1 ? (
+                <p className="scraped-note">
+                  ℹ️ {t("carousel_limited_note", "Showing 1 of {{total}} items in this post — Instagram currently restricts full carousel access without a login session.", { total: media.total_items })}
+                </p>
+              ) : media.scraped && (
                 <p className="scraped-note">
                   ⚡ {t("scraped_note", "Preview loaded via fast scraping. Full quality available on download.")}
                 </p>
@@ -357,9 +370,8 @@ export default function DownloaderForm({ platform, igType, ytType }) {
               ) : media.type === "image" && media.preview_url ? (
                 <img
                   src={media.preview_url}
-                  alt={media.title || "Instagram photo"}
+                  alt={t("instagram_photo_alt", "Instagram photo")}
                   className="media-element"
-                  crossOrigin="anonymous"
                 />
               ) : (
                 <div className="video-placeholder">
@@ -377,14 +389,12 @@ export default function DownloaderForm({ platform, igType, ytType }) {
               )}
 
               {media.caption && (
-                <p className="media-caption">
-                  {media.caption.length > 220 ? media.caption.slice(0, 220) + "…" : media.caption}
-                </p>
+                <p className="media-caption">{media.caption}</p>
               )}
 
               <div className="download-container">
                 <button className="btn success" onClick={onDownload}>
-                  ↓ {t("btn_download", "Download")}
+                  {t("btn_download", "Download")}
                 </button>
               </div>
             </>

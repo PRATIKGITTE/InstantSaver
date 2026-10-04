@@ -7,10 +7,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
+  <!-- Pre-hydration fallback title only — react-helmet replaces the single <title> node
+       in place once React mounts, so this is safe to leave as a fallback. Its
+       <meta name="description"> counterpart used to live here too, but meta tags don't
+       get replaced the same way (react-helmet only manages tags it creates, so it just
+       appended a second one) — every route now supplies its own via Helmet instead,
+       with nothing static to conflict with (see App.js's HomeSeoTags, SeoPage.js, etc). -->
   <title>Instagram Downloader — Download Reels, Photos, Carousel, Videos Free | InstantSaver</title>
-
-  <meta name="description"
-    content="InstantSaver is a free Instagram downloader. Download Instagram Reels, Photos, Carousel posts, and Videos in HD — no watermark, no login, works on iPhone & Android." />
 
   <meta name="keywords"
     content="instagram downloader, instagram reels downloader, download instagram photos, instagram carousel downloader, instagram video downloader, download instagram reels, reels saver, free instagram downloader, no watermark" />
@@ -18,12 +21,11 @@
   <meta name="robots"
     content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
 
-  <!-- ================= CANONICAL ================= -->
-  <link rel="canonical" href="https://instantsaver.in/" />
-
   <!-- ================= FAVICONS / LOGO ================= -->
-  <link rel="icon" type="image/png" sizes="32x32" href="/logo.png" />
-  <link rel="apple-touch-icon" href="/logo.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/logo-32.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/logo-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/logo-512.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/logo-180.png" />
   <meta name="application-name" content="InstantSaver" />
   <meta name="theme-color" content="#6366f1" />
 
@@ -34,13 +36,15 @@
   <meta name="apple-mobile-web-app-title" content="InstantSaver" />
   <meta name="mobile-web-app-capable" content="yes" />
 
-  <!-- ================= LANGUAGE / HREFLANG ================= -->
+  <!-- ================= LANGUAGE ================= -->
+  <!-- NOTE: canonical + hreflang tags used to be hardcoded here too, but this file is
+       served identically for EVERY client-side route (CRA + react-router), so a static
+       homepage-only canonical became a permanent duplicate that beat each route's own
+       react-helmet-injected canonical (react-helmet only manages tags it creates itself
+       — it never removes this file's static ones). Each route now supplies its own
+       canonical/hreflang via Helmet instead (see App.js's HomeSeoTags, SeoPage.js,
+       About.js, etc.) — exactly one canonical per route, no static conflict. -->
   <meta http-equiv="content-language" content="en" />
-  <link rel="alternate" hreflang="x-default" href="https://instantsaver.in/" />
-  <link rel="alternate" hreflang="en" href="https://instantsaver.in/" />
-  <link rel="alternate" hreflang="hi" href="https://instantsaver.in/hi" />
-  <link rel="alternate" hreflang="id" href="https://instantsaver.in/id" />
-  <link rel="alternate" hreflang="th" href="https://instantsaver.in/th" />
 
   <!-- ================= OPEN GRAPH ================= -->
   <meta property="og:site_name" content="InstantSaver" />
@@ -61,15 +65,11 @@
   <meta name="twitter:image" content="https://instantsaver.in/og-cover.png" />
 
   <!-- ================= GOOGLE ADSENSE ================= -->
-  <!--
-    TO ENABLE ADS: Replace ca-pub-XXXXXXXXXXXXXXXX with your real AdSense publisher ID.
-    Get your ID at: https://adsense.google.com/start/
-    Then uncomment the script tag below.
-  -->
-  <!--
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX"
-    crossorigin="anonymous"></script>
-  -->
+  <!-- NOTE: this account (pub-9877820325984477) was deactivated by Google for 6+ months
+       of no ad-serving, and no ad-unit slot IDs are configured yet (see AdSlot.js) — so
+       this script currently would load third-party trackers/cookies for zero benefit.
+       AdSlot.js injects this script itself, lazily, only once a real ad slot is actually
+       being rendered. Do not add it back here unconditionally. -->
 
   <!-- ================= STRUCTURED DATA ================= -->
 

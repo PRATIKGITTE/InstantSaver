@@ -1,0 +1,64 @@
+<svg width="820" height="250" viewBox="0 15 820 250" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="heroGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-30%" y="-30%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#1e1b4b" flood-opacity="0.28"/>
+    </filter>
+    <clipPath id="clip1"><rect x="40" y="48" width="150" height="164" rx="18"/></clipPath>
+    <clipPath id="clip2"><rect x="335" y="48" width="150" height="164" rx="18"/></clipPath>
+    <clipPath id="clip3"><rect x="630" y="48" width="150" height="164" rx="18"/></clipPath>
+  </defs>
+
+  <!-- three "frosted glass" cards, floating with real depth via drop shadows, all on
+       the same baseline — modern/glossy rather than flat, but still parallel -->
+
+  <!-- left card: reel (video) -->
+  <g filter="url(#cardShadow)">
+    <rect x="40" y="48" width="150" height="164" rx="18" fill="#ffffff"/>
+    <g clip-path="url(#clip1)">
+      <rect x="40" y="48" width="150" height="164" fill="#dbeafe"/>
+      <polygon points="100,110 100,150 135,130" fill="#4f46e5"/>
+    </g>
+    <rect x="52" y="190" width="70" height="10" rx="5" fill="#c7d2fe"/>
+  </g>
+
+  <!-- center card: photo -->
+  <g filter="url(#cardShadow)">
+    <rect x="335" y="48" width="150" height="164" rx="18" fill="#ffffff"/>
+    <g clip-path="url(#clip2)">
+      <rect x="335" y="48" width="150" height="164" fill="#fef3c7"/>
+      <circle cx="410" cy="100" r="24" fill="#fbbf24"/>
+      <polygon points="335,160 380,125 415,150 460,115 485,135 485,212 335,212" fill="#86efac"/>
+    </g>
+    <rect x="350" y="190" width="90" height="10" rx="5" fill="#fde68a"/>
+  </g>
+
+  <!-- right card: profile/DP -->
+  <g filter="url(#cardShadow)">
+    <rect x="630" y="48" width="150" height="164" rx="18" fill="#ffffff"/>
+    <g clip-path="url(#clip3)">
+      <rect x="630" y="48" width="150" height="164" fill="#eef2ff"/>
+      <circle cx="705" cy="108" r="28" fill="#c7d2fe"/>
+      <circle cx="705" cy="97" r="12" fill="#818cf8"/>
+      <path d="M678 140 Q705 118 732 140 L732 164 L678 164 Z" fill="#818cf8"/>
+    </g>
+    <rect x="652" y="190" width="70" height="10" rx="5" fill="#e5e7eb"/>
+  </g>
+
+  <!-- download badges, slightly larger with their own shadow for a "popping" feel -->
+  <g filter="url(#cardShadow)">
+    <circle cx="190" cy="48" r="19" fill="url(#heroGrad)"/>
+    <path d="M190 39v14m0 0l-6-6m6 6l6-6" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g filter="url(#cardShadow)">
+    <circle cx="485" cy="48" r="19" fill="#15803d"/>
+    <path d="M485 39v14m0 0l-6-6m6 6l6-6" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g filter="url(#cardShadow)">
+    <circle cx="780" cy="48" r="19" fill="url(#heroGrad)"/>
+    <path d="M780 39v14m0 0l-6-6m6 6l6-6" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
