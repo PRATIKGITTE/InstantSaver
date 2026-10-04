@@ -146,3 +146,9 @@ frontend/build/
 
 backend/cookies.txt
 
+# Fetched at deploy time by download-ytdlp.sh — never commit these binaries
+backend/bin/
+
+# Local reference-only mirror of indown.io (competitor research, not our code)
+/My Web Sites/
+

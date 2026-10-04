@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
 const { exec, spawn } = require("child_process");
 const fs = require("fs");
 const path = require("path");
@@ -7,6 +8,16 @@ const os = require("os");
 
 const app = express();
 const PORT = process.env.PORT || 10000;
+
+// Standard security headers. crossOriginResourcePolicy is relaxed to "cross-origin"
+// because the entire point of this API is serving media/downloads to the Vercel
+// frontend (a different origin) — helmet's default "same-origin" CORP would block that.
+// CSP is left off: this is a JSON/media API, not an HTML-serving app, so there's no
+// injectable page context for CSP to protect.
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 
 // CORS — allow instantsaver.in and local dev; block random scrapers
 const allowedOrigins = [
@@ -18,11 +29,18 @@ app.use(cors({
   origin: (origin, cb) => {
     // Allow requests with no origin (curl, Render health checks, same-origin)
     if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-    cb(null, true); // keep permissive for now; tighten after domain is fully stable
+    cb(new Error("Not allowed by CORS"));
   },
   methods: ["GET", "OPTIONS"],
   optionsSuccessStatus: 204
 }));
+// Turn the CORS middleware's thrown error into a clean 403 instead of a bare 500
+app.use((err, req, res, next) => {
+  if (err && err.message === "Not allowed by CORS") {
+    return res.status(403).json({ error: "Origin not allowed." });
+  }
+  next(err);
+});
 
 // Force HTTPS redirect
 app.use((req, res, next) => {
@@ -68,7 +86,19 @@ const downloadLimiter = rateLimiter(15,  60_000, "Too many downloads. Please wai
 const dpLimiter       = rateLimiter(20,  60_000, "Too many profile requests. Please wait 1 minute.");
 
 // ---------- yt-dlp PATH ----------
-const YTDLP_PATH = path.join(__dirname, "bin", "yt-dlp");
+// Render (production) is Linux → "yt-dlp" (matches download-ytdlp.sh's output).
+// Local Windows dev → "yt-dlp.exe", so this only ever differs outside of prod.
+const YTDLP_PATH = path.join(__dirname, "bin", process.platform === "win32" ? "yt-dlp.exe" : "yt-dlp");
+
+// ---------- ffmpeg PATH ----------
+// YouTube no longer reliably serves pre-muxed (video+audio combined) formats, so video
+// downloads need ffmpeg to merge separate video/audio streams. Prefer a bundled binary
+// (fetched by download-ytdlp.sh on Render) and fall back to a system install (e.g. local
+// dev machines that already have ffmpeg on PATH).
+const FFMPEG_PATH = (() => {
+  const bundled = path.join(__dirname, "bin", process.platform === "win32" ? "ffmpeg.exe" : "ffmpeg");
+  return fs.existsSync(bundled) ? bundled : null; // null → let yt-dlp auto-detect on PATH
+})();
 
 // ======================================================
 // STRUCTURED LOGGER
@@ -97,6 +127,20 @@ app.use("/api", (req, res, next) => {
 
 // ---------- YouTube cookies path ----------
 const YT_COOKIES_PATH = path.join(os.tmpdir(), "yt-cookies.txt");
+
+// ---------- YouTube player client fallback ----------
+// YouTube's "Sign in to confirm you're not a bot" check blocks the default "web" player
+// client for anonymous (no-cookie) requests — confirmed live 2026-10-05, 100% repro on
+// every video tested, even from a residential IP (this used to work without cookies as of
+// 2026-08-30; YouTube tightened bot detection since). Requesting "web,android" makes yt-dlp
+// try web first (full format list, highest quality — wins outright when YT_COOKIES is set)
+// and silently fall back to the android client for whatever web couldn't get — the android
+// client is not subject to this particular bot-check. Trade-off: android-only formats cap
+// out around 360p (it doesn't expose the high-res DASH streams the web client does), so
+// without cookies this is "works reliably at 360p" instead of "works at up to 1080p" — a
+// real quality regression, but strictly better than the current 100% failure. Revisit if
+// yt-dlp adds a client with both bot-check immunity AND high-res formats.
+const YT_CLIENT_ARGS = ["--extractor-args", "youtube:player_client=web,android"];
 
 // ---------- Health ----------
 app.get("/health", (req, res) => {
@@ -153,13 +197,17 @@ function isInstagramUrl(url) {
 }
 
 // Extract username from URL paths like /cristiano/reel/{id}/, /cristiano/p/{id}/, /stories/cristiano/{id}/
+// NOTE: /stories/highlights/{id}/ carries no username in the path at all — return null
+// there so callers fall back to og:title parsing instead of the literal "highlights".
 function extractUsernameFromUrl(url) {
   try {
     const u = new URL(url.trim());
     const parts = u.pathname.split("/").filter(Boolean);
     if (!parts.length) return null;
-    // Pattern: /stories/{username}/{id}/
-    if (parts[0] === "stories" && parts.length >= 2) return parts[1];
+    // Pattern: /stories/{username}/{id}/  (but /stories/highlights/{id}/ has no username)
+    if (parts[0] === "stories" && parts.length >= 2) {
+      return parts[1] === "highlights" ? null : parts[1];
+    }
     // Pattern: /{username}/{postType}/{id}
     const postSegments = ["p", "reel", "reels", "tv", "highlights"];
     if (parts.length >= 2 && postSegments.includes(parts[1])) return parts[0];
@@ -174,6 +222,16 @@ function isInstagramStoriesUrl(url) {
     if (!/instagram\.com$/i.test(u.hostname)) return false;
     const parts = u.pathname.split("/").filter(Boolean);
     return parts[0] === "stories";
+  } catch { return false; }
+}
+
+// Returns true for instagram.com/stories/highlights/{id}/ URLs
+function isInstagramHighlightUrl(url) {
+  try {
+    const u = new URL(url.trim());
+    if (!/instagram\.com$/i.test(u.hostname)) return false;
+    const parts = u.pathname.split("/").filter(Boolean);
+    return parts[0] === "stories" && parts[1] === "highlights";
   } catch { return false; }
 }
 
@@ -450,6 +508,102 @@ function cdnPath(url) {
   try { return new URL(url).pathname; } catch { return url; }
 }
 
+// Attempt to resolve EVERY item of a carousel post via Instagram's own internal GraphQL
+// endpoint — the same one instagram.com's own web app calls client-side to render a post,
+// not a deprecated/legacy API. Unlike yt-dlp (which can detect a carousel's item COUNT via
+// the playlist but gets `null` for every individual entry) and the old `?img_index=N` trick
+// (Instagram stopped varying the response by it), this endpoint — when it works — returns
+// the full `edge_sidecar_to_children` list with a real image/video URL for every slide, with
+// NO login/cookie required. Technique + exact doc_id confirmed against a live, maintained
+// open-source scraper (github.com/ahmedrangel/instagram-media-scraper, scraper_graphql.js)
+// rather than guessed — Instagram rotates this doc_id occasionally as their web app
+// redeploys, so this WILL need the value refreshed again at some point; when it stops
+// working, re-check that project (or inspect instagram.com's own network tab for the
+// current doc_id their post-page component calls) rather than assuming the whole approach
+// is dead. Also subject to normal anonymous-request rate limiting — on 2026-10-04 this
+// returned "Rate limit exceeded" (not an auth/doc_id error) after this same dev IP had
+// already made many other Instagram requests that session; a clean IP should succeed.
+async function fetchCarouselViaGraphQL(shortcode) {
+  const https = require("https");
+  const body = new URLSearchParams({
+    variables: JSON.stringify({ shortcode }),
+    doc_id: "10015901848480474",
+    lsd: "AVqbxe3J_YA"
+  }).toString();
+
+  return new Promise((resolve) => {
+    const req = https.request(
+      {
+        hostname: "www.instagram.com",
+        path: "/api/graphql",
+        method: "POST",
+        timeout: 10000,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Content-Length": Buffer.byteLength(body),
+          "X-IG-App-ID": "936619743392459",
+          "X-FB-LSD": "AVqbxe3J_YA",
+          "X-ASBD-ID": "129477",
+          "Sec-Fetch-Site": "same-origin"
+        }
+      },
+      (response) => {
+        let raw = "";
+        response.setEncoding("utf8");
+        response.on("data", (chunk) => { if (raw.length < 2000000) raw += chunk; });
+        response.on("end", () => {
+          try {
+            const json = JSON.parse(raw);
+            const media = json?.data?.xdt_shortcode_media;
+            if (!media) {
+              logErr("GRAPHQL", `No xdt_shortcode_media for ${shortcode}: ${raw.slice(0, 200)}`);
+              return resolve(null);
+            }
+            resolve(media);
+          } catch (e) {
+            logErr("GRAPHQL", `Parse failed for ${shortcode}: ${e.message} — raw: ${raw.slice(0, 200)}`);
+            resolve(null);
+          }
+        });
+      }
+    );
+    req.on("timeout", () => { req.destroy(); resolve(null); });
+    req.on("error", (e) => { logErr("GRAPHQL", `Request error for ${shortcode}: ${e.message}`); resolve(null); });
+    req.write(body);
+    req.end();
+  });
+}
+
+// Converts a GraphQL `xdt_shortcode_media` carousel node into our normal items[] shape.
+function buildCarouselFromGraphQL(media, cleanUrl) {
+  const edges = media?.edge_sidecar_to_children?.edges;
+  if (!Array.isArray(edges) || edges.length === 0) return null;
+
+  const items = edges.map((edge, i) => {
+    const node = edge.node;
+    const isVideo = !!node.is_video;
+    const mediaUrl = isVideo ? node.video_url : node.display_url;
+    return {
+      index: i + 1,
+      type: isVideo ? "video" : "image",
+      preview_url: mediaUrl || null,
+      thumbnail: node.display_url || null,
+      download_url: `/api/instagram/download-proxy?url=${encodeURIComponent(mediaUrl)}&type=${isVideo ? "video" : "image"}`
+    };
+  });
+
+  return {
+    type: "carousel",
+    items,
+    item_count: items.length,
+    total_items: items.length,
+    username: media.owner?.username || extractUsernameFromUrl(cleanUrl),
+    title: media.owner?.username ? `Post by ${media.owner.username}` : "Instagram post",
+    caption: media.edge_media_to_caption?.edges?.[0]?.node?.text || ""
+  };
+}
+
 // Scrape an Instagram post/reel/story via og: tags.
 // For /p/ carousel posts, fetches img_index=1..N in PARALLEL batches for speed.
 async function scrapeInstagramPost(cleanUrl) {
@@ -458,11 +612,16 @@ async function scrapeInstagramPost(cleanUrl) {
 
   let pathname = parsedUrl.pathname;
   const isPostUrl = /\/p\/[^/]+/.test(pathname);
+  const isHighlightPath = /\/stories\/highlights\//.test(pathname);
+  // Highlights are multi-slide just like carousels (a saved reel of several stories),
+  // so they need the same img_index pagination — not the single-item path used for
+  // plain reels/stories.
+  const isMultiSlide = isPostUrl || isHighlightPath;
 
-  log("OG-SCRAPE", `Starting scrape: ${pathname} isPost=${isPostUrl}`);
+  log("OG-SCRAPE", `Starting scrape: ${pathname} isPost=${isPostUrl} isHighlight=${isHighlightPath}`);
 
-  // Fetch img_index=1 (posts) or no index (reels/stories)
-  const first = await fetchOgSingle(pathname, isPostUrl ? "?img_index=1" : "");
+  // Fetch img_index=1 (posts/highlights) or no index (reels/stories)
+  const first = await fetchOgSingle(pathname, isMultiSlide ? "?img_index=1" : "");
   if (!first || (!first.image && !first.video)) {
     logErr("OG-SCRAPE", `No og:image/video found for ${pathname}. first=${JSON.stringify(first)}`);
     return null;
@@ -473,8 +632,8 @@ async function scrapeInstagramPost(cleanUrl) {
   if (first.finalPathname && first.finalPathname !== pathname) pathname = first.finalPathname;
   const urlUsername = extractUsernameFromUrl(`https://www.instagram.com${pathname}`);
 
-  // Non-/p/ URLs (reels, stories) — single item
-  if (!isPostUrl) {
+  // Non-/p/, non-highlight URLs (reels, stories) — single item
+  if (!isMultiSlide) {
     const mediaUrl = first.video || first.image;
     return {
       type: first.video ? "video" : "image",
@@ -489,8 +648,18 @@ async function scrapeInstagramPost(cleanUrl) {
     };
   }
 
-  // Fetch img_index=2 in PARALLEL with first already done to check for carousel.
+  // Fetch img_index=2 in PARALLEL with first already done to check for carousel/multi-slide highlight.
   // CDN URLs for the same underlying image have the same path but different query tokens.
+  //
+  // ⚠️ KNOWN BROKEN (found 2026-08-30 via live testing): Instagram appears to have
+  // stopped honoring ?img_index=N for anonymous/facebookexternalhit requests — both
+  // img_index=1 and img_index=2 now return the identical first slide's image, so
+  // `isCarousel` here evaluates false for real multi-item carousels (confirmed against
+  // several live carousel posts, cross-checked with `yt-dlp -J` showing the true
+  // playlist_count > 1). Every carousel is currently silently collapsed to a single
+  // image. Since /p/ posts use this OG-scrape path as PRIMARY (not yt-dlp — see the
+  // comment above the /api/instagram route), this needs a different multi-item
+  // detection signal before carousels work again — img_index can no longer be trusted.
   const second = await fetchOgSingle(pathname, "?img_index=2");
   const isCarousel = !!(second && second.image && cdnPath(second.image) !== cdnPath(first.image));
   log("OG-SCRAPE", `isCarousel=${isCarousel} (img1_path=${cdnPath(first.image||"").slice(-30)} img2_path=${cdnPath(second?.image||"").slice(-30)})`);
@@ -503,7 +672,7 @@ async function scrapeInstagramPost(cleanUrl) {
       preview_url: first.image || null,
       download_url: `/api/instagram/download-proxy?url=${encodeURIComponent(mediaUrl)}&type=${first.video ? "video" : "image"}`,
       username: urlUsername,
-      title: first.title || "Instagram post",
+      title: first.title || (isHighlightPath ? "Instagram highlight" : "Instagram post"),
       caption: first.desc || "",
       thumbnail: first.image || null,
       scraped: true
@@ -554,7 +723,7 @@ async function scrapeInstagramPost(cleanUrl) {
     items,
     item_count: items.length,
     username: urlUsername,
-    title: first.title || "Instagram carousel",
+    title: first.title || (isHighlightPath ? "Instagram highlight" : "Instagram carousel"),
     caption: first.desc || "",
     scraped: true
   };
@@ -583,7 +752,16 @@ async function scrapeInstagramPostCached(cleanUrl, res) {
 function buildInstagramResponse(data, cleanUrl) {
   // CAROUSEL POST (multiple photos/videos in one post)
   if (data._type === "playlist" && Array.isArray(data.entries) && data.entries.length > 0) {
-    const items = data.entries.map((entry, i) => {
+    const totalItems = data.entries.length;
+    // Instagram currently blocks per-item carousel extraction for unauthenticated
+    // requests — yt-dlp reports `null` for entries it couldn't resolve (observed a 100%
+    // null rate across every real carousel tested 2026-08-30). Filter those out rather
+    // than crash on `null.formats`; item_count can end up less than totalItems, even 0.
+    const resolvableEntries = data.entries
+      .map((entry, i) => [entry, i])
+      .filter(([entry]) => entry != null);
+
+    const items = resolvableEntries.map(([entry, i]) => {
       // Stub entries from yt-dlp have _type:"url" and no formats/vcodec
       const isStub = entry._type === "url" || (!entry.formats && entry.vcodec === undefined);
       const formats = Array.isArray(entry.formats) ? entry.formats : [];
@@ -623,15 +801,17 @@ function buildInstagramResponse(data, cleanUrl) {
       };
     });
 
-    // Prefer username found in URL (yt-dlp often returns "Instagram" instead of real username)
+    // Prefer username found in URL, then yt-dlp's `channel` (actual @handle) —
+    // `uploader` is the display name (e.g. "Pratikssha Honmukhe"), not the handle.
     const urlUser = extractUsernameFromUrl(cleanUrl);
-    const ytUser = (data.uploader || data.channel || "").toLowerCase();
-    const resolvedUser = urlUser || (ytUser && ytUser !== "instagram" ? (data.uploader || data.channel) : null);
+    const ytUser = (data.channel || data.uploader || "").toLowerCase();
+    const resolvedUser = urlUser || (ytUser && ytUser !== "instagram" ? (data.channel || data.uploader) : null);
 
     return {
       type: "carousel",
       items,
       item_count: items.length,
+      total_items: totalItems,
       username: resolvedUser,
       title: data.title || "Instagram post",
       caption: data.description || ""
@@ -658,8 +838,8 @@ function buildInstagramResponse(data, cleanUrl) {
   }
 
   const urlUser2 = extractUsernameFromUrl(cleanUrl);
-  const ytUser2 = (data.uploader || data.channel || "").toLowerCase();
-  const resolvedUser2 = urlUser2 || (ytUser2 && ytUser2 !== "instagram" ? (data.uploader || data.channel) : null);
+  const ytUser2 = (data.channel || data.uploader || "").toLowerCase();
+  const resolvedUser2 = urlUser2 || (ytUser2 && ytUser2 !== "instagram" ? (data.channel || data.uploader) : null);
 
   return {
     type: isVideo ? "video" : "image",
@@ -687,11 +867,12 @@ app.get("/api/instagram", metaLimiter, async (req, res) => {
   log("IG", `→ ${cleanUrl}`);
 
   // Detect URL type for logging
-  const isProfileUrl = isInstagramProfileUrl(cleanUrl);
-  const isPostUrl    = /\/p\/[^/]+/.test(cleanUrl);
-  const isReelUrl    = /\/reel\/[^/]+/.test(cleanUrl);
-  const isStoryUrl   = /\/stories\//.test(cleanUrl);
-  const urlType      = isProfileUrl ? "PROFILE" : isPostUrl ? "POST" : isReelUrl ? "REEL" : isStoryUrl ? "STORY" : "UNKNOWN";
+  const isProfileUrl   = isInstagramProfileUrl(cleanUrl);
+  const isPostUrl      = /\/p\/[^/]+/.test(cleanUrl);
+  const isReelUrl      = /\/reel\/[^/]+/.test(cleanUrl);
+  const isHighlightUrl = isInstagramHighlightUrl(cleanUrl);
+  const isStoryUrl     = /\/stories\//.test(cleanUrl);
+  const urlType        = isProfileUrl ? "PROFILE" : isPostUrl ? "POST" : isReelUrl ? "REEL" : isHighlightUrl ? "HIGHLIGHT" : isStoryUrl ? "STORY" : "UNKNOWN";
   log("IG", `URL type: ${urlType}`);
 
   // Cache hit
@@ -707,21 +888,17 @@ app.get("/api/instagram", metaLimiter, async (req, res) => {
     return fetchInstagramDP(cleanUrl, res);
   }
 
-  // ── POST (/p/) ────────────────────────────────────────────────
-  // yt-dlp is rate-limited on /p/ posts; OG scraping is the primary path.
-  if (isPostUrl) {
-    log("IG", `Extractor: OG_POST (img_index iteration)`);
-    try {
-      const result = await scrapeInstagramPostCached(cleanUrl, res);
-      if (result !== null) log("IG", `POST done: type=${result.type} items=${result.item_count||1}`);
-    } catch (e) {
-      logErr("IG", `OG POST scrape threw: ${e.message}`);
-      if (!res.headersSent) res.status(500).json({ error: "Failed to fetch this post. It may be private or unavailable." });
-    }
-    return;
-  }
-
-  // ── REEL / STORY / IGTV — use yt-dlp with OG fallback ────────
+  // ── REEL / STORY / IGTV / POST — use yt-dlp with OG fallback ────────
+  // NOTE: /p/ posts used to skip straight to OG-scrape ("yt-dlp is rate-limited on
+  // /p/ posts") but that meant carousels were silently shown as a single image with no
+  // way to know more items existed — OG-scrape's img_index carousel-detection no longer
+  // works at all (Instagram stopped varying the returned image by img_index). yt-dlp's
+  // playlist_count is still a reliable multi-item signal even though it currently can't
+  // resolve individual carousel items either (see the merge-fallback below) — routing
+  // posts through here restores at least an honest "N items" count. Watch Render logs
+  // after deploy in case this reintroduces the rate-limiting the old comment warned
+  // about; the OG-scrape fallback below means a regression degrades back to today's
+  // single-image behavior, not a hard failure.
   if (!fs.existsSync(YTDLP_PATH)) {
     log("IG", `yt-dlp not found at ${YTDLP_PATH} — falling back to OG scraping for ${urlType}`);
     try {
@@ -737,8 +914,21 @@ app.get("/api/instagram", metaLimiter, async (req, res) => {
   const metaCmd = `"${YTDLP_PATH}" -J --no-warnings --extractor-retries 2 --socket-timeout 15 "${cleanUrl.replace(/"/g, '\\"')}"`;
 
   exec(metaCmd, { timeout: 60000, maxBuffer: 30 * 1024 * 1024 }, async (err, stdout, stderr) => {
-    if (err) {
-      logErr("IG", `yt-dlp failed (${urlType}): ${(err.message || "").split("\n")[0]}`);
+    // yt-dlp can exit non-zero (err truthy) while STILL printing valid, useful JSON to
+    // stdout — e.g. a carousel where individual items fail to extract but the
+    // playlist-level metadata (crucially, the real item count) is still there. Try
+    // parsing stdout regardless of exit code before giving up on yt-dlp entirely.
+    let raw = (stdout || "").trim();
+    const jsonStart = raw.indexOf("{");
+    if (jsonStart > 0) raw = raw.slice(jsonStart);
+
+    let data = null;
+    if (raw) {
+      try { data = JSON.parse(raw); } catch { data = null; }
+    }
+
+    if (!data) {
+      if (err) logErr("IG", `yt-dlp failed (${urlType}): ${(err.message || "").split("\n")[0]}`);
       log("IG", `Falling back to OG scraping for ${urlType}`);
       try {
         await scrapeInstagramPostCached(cleanUrl, res);
@@ -748,23 +938,62 @@ app.get("/api/instagram", metaLimiter, async (req, res) => {
       }
       return;
     }
-    let raw = stdout.trim();
-    const jsonStart = raw.indexOf("{");
-    if (jsonStart > 0) raw = raw.slice(jsonStart);
-    try {
-      const data = JSON.parse(raw);
-      log("IG", `yt-dlp success: type=${data._type||"single"} uploader="${data.uploader||"?"}" ext=${data.ext||"?"}`);
-      const result = buildInstagramResponse(data, cleanUrl);
-      metaCacheSet(cleanUrl, result);
-      res.json(result);
-    } catch (parseErr) {
-      logErr("IG", `JSON parse failed: ${parseErr.message}. Falling back to OG scraping.`);
-      try {
-        await scrapeInstagramPostCached(cleanUrl, res);
-      } catch (e) {
-        if (!res.headersSent) res.status(500).json({ error: "Failed to parse media response. Please try again." });
+
+    log("IG", `yt-dlp success: type=${data._type||"single"} uploader="${data.uploader||"?"}" ext=${data.ext||"?"}${err ? " (exited non-zero but stdout had usable JSON)" : ""}`);
+    let result = buildInstagramResponse(data, cleanUrl);
+
+    // yt-dlp correctly detected a multi-item post (total_items) but couldn't resolve
+    // ANY individual entry — Instagram currently blocks per-item carousel extraction via
+    // yt-dlp for unauthenticated requests. Before falling back to a single-image result,
+    // try the GraphQL sidecar endpoint (fetchCarouselViaGraphQL) — when it's not rate
+    // limited and the doc_id is current, it resolves every real item, not just one.
+    if (result.type === "carousel" && result.item_count === 0 && result.total_items > 0) {
+      const shortcodeMatch = cleanUrl.match(/instagram\.com\/(?:[A-Za-z0-9_.]+\/)?(?:p|reels?|reel)\/([A-Za-z0-9-_]+)/);
+      if (shortcodeMatch) {
+        log("IG", `Trying GraphQL sidecar fetch for full carousel (${result.total_items} items, shortcode=${shortcodeMatch[1]})`);
+        const media = await fetchCarouselViaGraphQL(shortcodeMatch[1]);
+        const graphqlResult = media && buildCarouselFromGraphQL(media, cleanUrl);
+        if (graphqlResult && graphqlResult.item_count > 0) {
+          log("IG", `GraphQL sidecar resolved ${graphqlResult.item_count}/${result.total_items} real items`);
+          metaCacheSet(cleanUrl, graphqlResult);
+          return res.json(graphqlResult);
+        }
+        log("IG", `GraphQL sidecar fetch did not yield items — falling back to OG-scrape for the first item`);
+      }
+      log("IG", `Playlist had 0/${result.total_items} resolvable entries — falling back to OG-scrape for the first item`);
+      const ytResult = result; // yt-dlp's own metadata — caption/username here are cleaner
+      // (real caption text, no "5M likes, 44K comments -" prefix; real @handle via `channel`)
+      // than OG-scrape's, so prefer them and only use ogResult for the actual image/video.
+      const ogResult = await scrapeInstagramPost(cleanUrl);
+      if (ogResult) {
+        // Keep type "carousel" (not ogResult's "image"/"video") so the frontend still
+        // renders the grid — with the one item we have — instead of silently collapsing
+        // a 4-item post into what looks like a complete single-image post.
+        result = {
+          type: "carousel",
+          items: [{
+            index: 1,
+            type: ogResult.type,
+            preview_url: ogResult.preview_url,
+            thumbnail: ogResult.thumbnail,
+            download_url: ogResult.download_url
+          }],
+          item_count: 1,
+          total_items: ytResult.total_items,
+          username: ytResult.username || ogResult.username,
+          title: ytResult.title || ogResult.title,
+          caption: ytResult.caption || ogResult.caption
+        };
+      } else {
+        if (!res.headersSent) {
+          return res.status(404).json({ error: "Post not found or private. Make sure the account is public and the link is correct." });
+        }
+        return;
       }
     }
+
+    metaCacheSet(cleanUrl, result);
+    res.json(result);
   });
 });
 
@@ -802,6 +1031,59 @@ function streamYtdlp(args, res, filename, contentType, logTag) {
   });
 }
 
+// Downloads via yt-dlp to a REAL temp file (not stdout) — needed whenever the format
+// selector merges separate video+audio streams, since piping a merge straight to
+// stdout only produces a broken container (MP4 muxing needs a seekable output for its
+// moov atom). Streams the resulting file to the client, then sweeps up every temp file
+// sharing this request's prefix (the final merged file plus any per-format
+// intermediates yt-dlp occasionally leaves behind). Shared by /api/youtube/download and
+// the Instagram video branch of /api/instagram/download — both need it because YouTube
+// and Instagram alike now frequently only expose split DASH streams above ~720p.
+function mergeDownloadYtdlp(args, res, tempId, tempOut, filename, contentType, logTag) {
+  const child = spawn(YTDLP_PATH, args);
+  let stderrTail = "";
+  child.stderr.on("data", (d) => { stderrTail = (stderrTail + d.toString()).slice(-4000); });
+
+  const cleanupTemp = () => {
+    fs.readdir(os.tmpdir(), (err, files) => {
+      if (err) return;
+      for (const f of files) {
+        if (f.startsWith(tempId)) fs.unlink(path.join(os.tmpdir(), f), () => {});
+      }
+    });
+  };
+
+  child.on("error", (e) => {
+    logErr(logTag, `spawn error: ${e.message}`);
+    if (!res.headersSent) res.status(500).json({ error: "Download process failed. Please try again." });
+    cleanupTemp();
+  });
+
+  child.on("close", (code) => {
+    if (code !== 0 || !fs.existsSync(tempOut)) {
+      logErr(logTag, `exit ${code}: ${stderrTail.split("\n").filter(Boolean).slice(-3).join(" | ")}`);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Download failed. This may be restricted, private, or temporarily unavailable." });
+      }
+      cleanupTemp();
+      return;
+    }
+    const stat = fs.statSync(tempOut);
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Content-Length", stat.size);
+    const readStream = fs.createReadStream(tempOut);
+    readStream.on("error", (e) => {
+      logErr(logTag, `read stream error: ${e.message}`);
+      if (!res.headersSent) res.status(500).end();
+      else res.end();
+    });
+    readStream.on("close", cleanupTemp);
+    res.on("close", cleanupTemp);
+    readStream.pipe(res);
+  });
+}
+
 app.get("/api/instagram/download", downloadLimiter, (req, res) => {
   const { url, type, item } = req.query;
   if (!url) return res.status(400).json({ error: "Missing URL" });
@@ -827,15 +1109,25 @@ app.get("/api/instagram/download", downloadLimiter, (req, res) => {
     streamYtdlp(args, res, filename, "application/octet-stream", "IG-auto");
 
   } else {
-    // Video (reels, IGTV, video posts) — no ffmpeg re-encode to avoid silent failure
+    // Video (reels, IGTV, video posts). Used to cap at height<=720 with no ffmpeg —
+    // confirmed live on a real reel that this leaves real quality on the table: true
+    // best available was 1080x1920 (VP9 video-only DASH + separate AAC audio-only DASH,
+    // no progressive/muxed option above 720p) — same split-stream situation YouTube is
+    // in. Merge via ffmpeg into a real temp file for genuine full-quality downloads.
     const filename = safeFileName("instagram", ".mp4");
+    const tempId = `ig_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const tempOut = path.join(os.tmpdir(), `${tempId}.mp4`);
+    const fmt = "bestvideo[vcodec^=avc1]+bestaudio[acodec^=mp4a]/bestvideo+bestaudio/best";
     const args = [
       ...retryFlags,
-      "-f", "best[height<=720][ext=mp4]/best[ext=mp4]/best",
-      "-o", "-",
-      url
+      "-f", fmt,
+      "--merge-output-format", "mp4",
+      ...(FFMPEG_PATH ? ["--ffmpeg-location", FFMPEG_PATH] : []),
+      "-o", tempOut
     ];
-    streamYtdlp(args, res, filename, "video/mp4", "IG-video");
+    if (itemNumber) args.push("--playlist-items", String(itemNumber));
+    args.push(url);
+    mergeDownloadYtdlp(args, res, tempId, tempOut, filename, "video/mp4", "IG-video");
   }
 });
 
@@ -960,7 +1252,7 @@ app.get("/api/youtube", metaLimiter, (req, res) => {
 
   const cookiePath = ensureYouTubeCookies();
 
-  const cmd = `"${YTDLP_PATH}" --no-warnings --socket-timeout 20 ${cookiePath ? `--cookies "${cookiePath}"` : ''} -J "${cleanUrl.replace(/"/g, '\\"')}"`;
+  const cmd = `"${YTDLP_PATH}" --no-warnings --socket-timeout 20 ${YT_CLIENT_ARGS.join(" ")} ${cookiePath ? `--cookies "${cookiePath}"` : ''} -J "${cleanUrl.replace(/"/g, '\\"')}"`;
 
   exec(cmd, { timeout: 45000, maxBuffer: 30 * 1024 * 1024 }, (err, stdout, stderr) => {
     if (err) {
@@ -984,18 +1276,24 @@ app.get("/api/youtube", metaLimiter, (req, res) => {
       (f) => f.url && f.vcodec !== "none" && f.acodec !== "none"
     );
 
-    // Available quality buckets (for frontend quality selector)
-    const qualityOptions = [];
-    const heights = [360, 480, 720];
-    heights.forEach((h) => {
-      const match = progressive.filter((f) => f.height && f.height <= h)
-        .sort((a, b) => (b.tbr || 0) - (a.tbr || 0))[0];
-      if (match) qualityOptions.push({ label: `${h}p`, height: h });
-    });
-    // Dedupe
-    const uniqueQualities = qualityOptions.filter((q, i, arr) =>
-      arr.findIndex((x) => x.height === q.height) === i
-    );
+    // Available quality buckets (for frontend quality selector). Based on ALL formats
+    // (not just `progressive`) since /api/youtube/download can merge separate video-only
+    // + audio-only DASH streams via ffmpeg to reach resolutions progressive alone doesn't
+    // have. Only offer a tier the extraction actually has a format for — previously this
+    // always offered 360/480/720 as long as SOME lower-height format existed (the "<=h"
+    // filter matches a 360p format for the 720p bucket too), so a user could pick "720p"
+    // and silently receive 360p. Real-world trigger: YouTube's bot-check currently forces
+    // the android player client fallback (see YT_CLIENT_ARGS above), which only exposes
+    // formats up to 360p — before this fix, the selector still showed fake 480p/720p
+    // buttons in that case.
+    const allHeights = formats.map((f) => f.height).filter(Boolean);
+    const maxAvailableHeight = allHeights.length ? Math.max(...allHeights) : 0;
+    const uniqueQualities = [360, 480, 720]
+      .filter((h) => h <= maxAvailableHeight)
+      .map((h) => ({ label: `${h}p`, height: h }));
+    if (!uniqueQualities.length && maxAvailableHeight) {
+      uniqueQualities.push({ label: `${maxAvailableHeight}p`, height: maxAvailableHeight });
+    }
 
     const best = progressive.sort((a, b) => (b.tbr || 0) - (a.tbr || 0))[0];
 
@@ -1013,7 +1311,7 @@ app.get("/api/youtube", metaLimiter, (req, res) => {
       title: data.title || "YouTube video",
       duration: data.duration || null,
       view_count: data.view_count || null,
-      quality_options: uniqueQualities.length ? uniqueQualities : [{ label: "720p", height: 720 }]
+      quality_options: uniqueQualities
     });
   });
 });
@@ -1030,23 +1328,35 @@ app.get("/api/youtube/download", downloadLimiter, (req, res) => {
 
   const cookiePath = ensureYouTubeCookies();
 
-  // Build height-constrained format selector — no ffmpeg needed (picks pre-muxed mp4)
+  // YouTube stopped reliably serving pre-muxed (video+audio combined) formats — nearly
+  // every video now only offers separate video-only and audio-only streams. Piping a
+  // video+audio merge straight to stdout ("-o -") only produces a broken MPEG-TS stream
+  // mislabeled as .mp4 (MP4 muxing needs a seekable output for its moov atom), so this
+  // downloads to a real temp file first, then streams that file to the client and deletes
+  // it afterward. Prefer H.264 + AAC (near-universal playback support) over AV1/VP9 + Opus
+  // when both are available for the requested height.
   const h = parseInt(quality, 10);
   const heightCap = [360, 480, 720].includes(h) ? h : 720;
-  const fmt = `best[height<=${heightCap}][ext=mp4]/best[height<=${heightCap}]/best[ext=mp4]/best`;
+  const fmt = `bestvideo[height<=${heightCap}][vcodec^=avc1]+bestaudio[acodec^=mp4a]/bestvideo[height<=${heightCap}]+bestaudio/best[height<=${heightCap}]`;
 
   const filename = safeFileName(title || "youtube_video", ".mp4");
+  const tempId = `yt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const tempOut = path.join(os.tmpdir(), `${tempId}.mp4`);
+
   const args = [
     "--no-warnings",
     "--socket-timeout", "30",
     "--extractor-retries", "2",
+    ...YT_CLIENT_ARGS,
     ...(cookiePath ? ["--cookies", cookiePath] : []),
     "-f", fmt,
-    "-o", "-",
+    "--merge-output-format", "mp4",
+    ...(FFMPEG_PATH ? ["--ffmpeg-location", FFMPEG_PATH] : []),
+    "-o", tempOut,
     cleanUrl
   ];
 
-  streamYtdlp(args, res, filename, "video/mp4", "YT-video");
+  mergeDownloadYtdlp(args, res, tempId, tempOut, filename, "video/mp4", "YT-video");
 });
 
 // Audio-only download — uses m4a/webm audio stream (NO ffmpeg required)
@@ -1067,6 +1377,7 @@ app.get("/api/youtube/audio", downloadLimiter, (req, res) => {
     "--no-warnings",
     "--socket-timeout", "30",
     "--extractor-retries", "2",
+    ...YT_CLIENT_ARGS,
     ...(cookiePath ? ["--cookies", cookiePath] : []),
     "-f", "bestaudio[ext=m4a]/bestaudio",
     "-o", "-",
